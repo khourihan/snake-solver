@@ -8,12 +8,13 @@ pub struct Field {
     pub cells: Vec<Vec<Cell>>,
     pub grid_size: usize,
     pub snake: Snake,
-    pub food: (isize, isize)
+    pub food: (isize, isize),
+    steps_per_frame: u64,
 }
 
 
 impl Field {
-    pub fn new(grid_size: usize) -> Self {
+    pub fn new(grid_size: usize, time_step: u64, steps_per_frame: u64) -> Self {
         let mut cells = Vec::new();
         for i in 0..grid_size {
             let mut row = Vec::new();
@@ -26,13 +27,28 @@ impl Field {
         Self {
             cells: cells,
             grid_size: grid_size,
-            snake: Snake::new(grid_size),
+            snake: Snake::new(grid_size, time_step),
+            steps_per_frame: steps_per_frame,
             food: (3, 3)
         }
     }
+    pub fn input(&mut self) {
+        if is_key_pressed(KeyCode::Space) && self.snake.has_won {
+            self.snake.should_reset = true;
+        }
+    }
     pub fn update(&mut self) {
+        self.input();
         self.snake.input();
-        self.snake.update(&mut self.food, &self.cells);
+        if self.snake.has_won {
+            return;
+        }
+        for _ in 0..self.steps_per_frame {
+            self.snake.update(&mut self.food, &self.cells);
+            if self.snake.should_reset || self.snake.has_won {
+                break;
+            }
+        }
     }
     fn get_neighbors(&self, cell: &Cell) -> Vec<bool> {
         let mut neighbors: Vec<bool> = Vec::new();
@@ -69,7 +85,8 @@ impl Field {
         
         return neighbors;
     }
-    pub fn draw(&mut self, tilesize: f32) {
+    pub fn draw(&mut self, tilesize: f32, font: Font) {
+        self.snake.draw_debug(tilesize, font);
         for row in self.cells.iter_mut() {
             for cell in row.iter_mut() {
                 cell.set_empty();

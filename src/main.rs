@@ -5,7 +5,9 @@ use self::field::Field;
 
 const BG_COLOR_DARK: Color = Color::new(0.09, 0.1, 0.11, 1.0);
 const BG_COLOR_LIGHT: Color = Color::new(0.12, 0.125, 0.14, 1.0);
-const GRID_SIZE: usize = 8;
+const GRID_SIZE: usize = 20;
+const TIME_STEP: u64 = 0;
+const STEPS_PER_FRAME: u64 = 15;
 
 
 
@@ -27,14 +29,20 @@ async fn main() {
 
     let mut screen_size: f32;
     let mut tile_size: f32;
-    let mut field = Field::new(GRID_SIZE);
+    let mut field = Field::new(GRID_SIZE, TIME_STEP, STEPS_PER_FRAME);
+    field.snake.build_cycle(&field.cells);
     loop {
         screen_size = screen_width().min(screen_height());
         tile_size = screen_size / GRID_SIZE as f32;
 
         draw_background(tile_size);
         field.update();
-        field.draw(tile_size);
+        field.draw(tile_size, font);
+
+        if field.snake.should_reset {
+            field = Field::new(GRID_SIZE, TIME_STEP, STEPS_PER_FRAME);
+            field.snake.build_cycle(&field.cells);
+        }
 
         draw_text_ex(
             &format!("Score: {}", field.snake.score),
