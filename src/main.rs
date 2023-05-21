@@ -5,7 +5,7 @@ use self::field::Field;
 
 const BG_COLOR_DARK: Color = Color::new(0.09, 0.1, 0.11, 1.0);
 const BG_COLOR_LIGHT: Color = Color::new(0.12, 0.125, 0.14, 1.0);
-const GRID_SIZE: usize = 20;
+const GRID_SIZE: usize = 32;
 const TIME_STEP: u64 = 0;
 const STEPS_PER_FRAME: u64 = 15;
 

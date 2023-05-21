@@ -1,10 +1,9 @@
 use std::time::{SystemTime, Duration};
 use std::collections::{HashMap, HashSet};
-use macroquad::shapes::draw_rectangle;
-use macroquad::text::{draw_text_ex, TextParams, Font};
+use macroquad::text::Font;
 use priority_queue::PriorityQueue;
 
-use macroquad::prelude::{is_key_pressed, KeyCode, draw_triangle, Color, load_ttf_font, Vec2, draw_circle};
+use macroquad::prelude::{is_key_pressed, KeyCode, Color, draw_circle};
 use rand::distributions::{Uniform, Distribution};
 
 #[path = "cell.rs"] mod cell;
@@ -28,7 +27,6 @@ pub struct Snake {
     pub score: usize,
     grid_size: usize,
     dir: (i8, i8),
-    optimal_path: Vec<(isize, isize)>,
     cycle_table: Vec<Vec<(i32, (i8, i8))>>,
 
     time: SystemTime,
@@ -53,7 +51,6 @@ impl Snake {
             segments: Vec::from([(xpos - 1, ypos), (xpos, ypos)]),
             length: 2,
             dir: (1, 0),
-            optimal_path: Vec::new(),
             cycle_table: Vec::new(),
 
             time: SystemTime::now(),
