@@ -6,9 +6,7 @@ use priority_queue::PriorityQueue;
 use macroquad::prelude::{is_key_pressed, KeyCode, Color, draw_circle};
 use rand::distributions::{Uniform, Distribution};
 
-#[path = "cell.rs"] mod cell;
-pub use cell::Cell;
-
+use crate::cell::Cell;
 
 pub enum Directions {
     Up,
@@ -16,8 +14,6 @@ pub enum Directions {
     Left,
     Right,
 }
-
-
 
 pub struct Snake {
     pub x: isize,
@@ -47,7 +43,7 @@ impl Snake {
         Self {
             x: xpos,
             y: ypos,
-            grid_size: grid_size,
+            grid_size,
             segments: Vec::from([(xpos - 1, ypos), (xpos, ypos)]),
             length: 2,
             dir: (1, 0),
@@ -62,6 +58,7 @@ impl Snake {
             has_won: false
         }
     }
+
     pub fn input(&mut self) {
         if is_key_pressed(KeyCode::Up) {
             self.change_dir(Directions::Up);
@@ -76,6 +73,7 @@ impl Snake {
             self.change_dir(Directions::Right);
         }
     }
+
     pub fn change_dir(&mut self, dir: Directions) {
         match dir {
             Directions::Up => {
@@ -104,7 +102,8 @@ impl Snake {
             }
         }
     }
-    pub fn reset(&mut self, grid: &Vec<Vec<Cell>>) {
+
+    pub fn reset(&mut self, grid: &[Vec<Cell>]) {
         let range = Uniform::from(1..(self.grid_size as isize) - 1);
         let mut rng = rand::thread_rng();
         let xpos = range.sample(&mut rng);
@@ -119,6 +118,7 @@ impl Snake {
         self.movable_dirs = [true; 4];
         self.build_cycle(grid);
     }
+
     fn respawn_food(&mut self, food: &mut (isize, isize)) {
         let range = Uniform::from(0..self.grid_size as isize);
         let mut rng = rand::thread_rng();
@@ -133,7 +133,7 @@ impl Snake {
         food.1 = y;
     }
 
-    fn get_neighbor_cells(&self, grid: &Vec<Vec<Cell>>, cell: &Cell) -> Vec<(isize, isize)> {
+    fn get_neighbor_cells(&self, grid: &[Vec<Cell>], cell: &Cell) -> Vec<(isize, isize)> {
         let mut neighbors = Vec::new();
         for row in grid.iter() {
             for other in row.iter() {
@@ -145,24 +145,32 @@ impl Snake {
                 }
             };
         };
-        return neighbors;
+        neighbors
     }
-    fn create_graph(&self, grid: &Vec<Vec<Cell>>) -> HashMap<(isize, isize), Vec<(isize, isize)>> {
+
+    fn create_graph(&self, grid: &[Vec<Cell>]) -> HashMap<(isize, isize), Vec<(isize, isize)>> {
         let mut graph = HashMap::<(isize, isize), Vec<(isize, isize)>>::new();
         for row in grid.iter() {
             for cell in row.iter() {
                 let neighbors = self.get_neighbor_cells(grid, cell);
-                if neighbors.len() > 0 {
+                if !neighbors.is_empty() {
                     graph.insert((cell.x as isize, cell.y as isize), neighbors);
                 }
             };
         };
-        return graph;
+        graph
     }
+
     fn heuristic(&self, p1: (isize, isize), p2: (isize, isize)) -> isize {
-        return (p1.0 - p2.0).abs() + (p1.1 - p2.1).abs();
+        (p1.0 - p2.0).abs() + (p1.1 - p2.1).abs()
     }
-    fn astar(&self, food: &mut (isize, isize), grid: &Vec<Vec<Cell>>, graph: HashMap<(isize, isize), Vec<(isize, isize)>>) -> HashMap<(isize, isize), (isize, isize)> {
+
+    fn astar(
+        &self,
+        food: &mut (isize, isize),
+        grid: &[Vec<Cell>],
+        graph: HashMap<(isize, isize), Vec<(isize, isize)>>,
+    ) -> HashMap<(isize, isize), (isize, isize)> {
         let mut count = 0;
         let mut open_set = PriorityQueue::new();
         open_set.push((count, (self.x, self.y)), 0);
@@ -181,7 +189,7 @@ impl Snake {
             }
         }
         g_score.insert((self.x, self.y), 0);
-        f_score.insert((self.x, self.y), self.heuristic((self.x, self.y), food.clone()));
+        f_score.insert((self.x, self.y), self.heuristic((self.x, self.y), *food));
 
         while !open_set.is_empty() {
             let cur_value = open_set.pop().unwrap().0;
@@ -212,12 +220,14 @@ impl Snake {
                 };
             };
         };
-        return visited;
+
+        visited
     }
 
     fn direction_to(&self, cell: &(isize, isize), adj_cell: &(isize, isize)) -> (i8, i8) {
-        return ((adj_cell.0 - cell.0) as i8, (adj_cell.1 - cell.1) as i8);
+        ((adj_cell.0 - cell.0) as i8, (adj_cell.1 - cell.1) as i8)
     }
+
     fn reconstruct_path(&self, route: &mut Vec<(i8, i8)>, visited: HashMap<(isize, isize), (isize, isize)>, food: &mut (isize, isize)) {
         let mut path_segment = *food;
         while visited.contains_key(&path_segment) {
@@ -230,16 +240,20 @@ impl Snake {
             path_segment = *parent;
         }
     }
-    fn create_shortest_path(&self, food: &mut (isize, isize), grid: &Vec<Vec<Cell>>) -> Vec<(i8, i8)> {
+
+    fn create_shortest_path(&self, food: &mut (isize, isize), grid: &[Vec<Cell>]) -> Vec<(i8, i8)> {
         let mut route: Vec<(i8, i8)> = Vec::new();
         let graph = self.create_graph(grid);
         let visited = self.astar(food, grid, graph);
-        if visited.len() > 0 {
+
+        if !visited.is_empty() {
             self.reconstruct_path(&mut route, visited, food);
         }
+
         route.reverse();
-        return route;
+        route
     }
+
     // pub fn update_compute(&mut self, food: &mut (isize, isize), grid: &Vec<Vec<Cell>>) {
     //     self.optimal_path = self.create_shortest_path(food, grid);
     //     if self.optimal_path.len() > 0 {
@@ -248,29 +262,35 @@ impl Snake {
     //     }
     // }
 
-    fn is_safe(&self, pos: (isize, isize), grid: &Vec<Vec<Cell>>) -> bool {
-        return ((pos.0 >= 0) && (pos.0 < self.grid_size as isize) && (pos.1 >= 0) && (pos.1 < self.grid_size as isize)) && (
-            !grid[pos.0 as usize][pos.1 as usize].is_snake());
+    fn is_safe(&self, pos: (isize, isize), grid: &[Vec<Cell>]) -> bool {
+        ((pos.0 >= 0) && (pos.0 < self.grid_size as isize) && (pos.1 >= 0) 
+            && (pos.1 < self.grid_size as isize)) 
+            && (!grid[pos.0 as usize][pos.1 as usize].is_snake())
     }
-    pub fn longest_path_to_tail(&self, grid: &Vec<Vec<Cell>>) -> Vec<(i8, i8)> {
+
+    pub fn longest_path_to_tail(&self, grid: &[Vec<Cell>]) -> Vec<(i8, i8)> {
         let mut destination = self.segments[0];
         let mut path = self.create_shortest_path(&mut destination, grid);
-        if path.len() == 0 {
+
+        if path.is_empty() {
             return Vec::new();
         }
+
         let head = self.segments[self.segments.len() - 1];
         let mut current = head;
         
         let mut visited = HashSet::new();
         
         visited.insert(grid[current.0 as usize][current.1 as usize].pos());
+
         for dir in path.iter() {
             current = grid[(current.0 + dir.0 as isize) as usize][(current.1 + dir.1 as isize) as usize].pos();
             visited.insert(grid[current.0 as usize][current.1 as usize].pos());
-        };
+        }
 
         let mut idx = 0;
         current = head;
+
         loop {
             let cur_dir = path[idx];
             let next = grid[(current.0 + cur_dir.0 as isize) as usize][(current.1 + cur_dir.1 as isize) as usize].pos();
@@ -298,7 +318,7 @@ impl Snake {
                     visited.insert(cur_test);
                     visited.insert(next_test);
                     path.insert(idx, *test_dir);
-                    path.insert(idx + 2, (test_dir.0 * -1, test_dir.1 * -1));
+                    path.insert(idx + 2, (-test_dir.0, -test_dir.1));
                     extended = true;
                     break;
                 }
@@ -311,10 +331,12 @@ impl Snake {
                     break;
                 }
             }
-        };
-        return path;
+        }
+
+        path
     }
-    pub fn build_cycle(&mut self, grid: &Vec<Vec<Cell>>) {
+
+    pub fn build_cycle(&mut self, grid: &[Vec<Cell>]) {
         self.cycle_table.clear();
         let path = self.longest_path_to_tail(grid);
         let mut current = self.segments[self.segments.len() - 1];
@@ -350,37 +372,43 @@ impl Snake {
             }
         }
     }
+
     fn relative_dist(&self, original: i32, x: i32) -> i32 {
         let mut val = x;
         if original > x {
             val += self.grid_size as i32 * self.grid_size as i32;
         };
-        return val - original;
+        val - original
     }
-    pub fn get_next_direction(&mut self, food: &mut (isize, isize), grid: &Vec<Vec<Cell>>) -> (i8, i8) {
+
+    pub fn get_next_direction(&mut self, food: &mut (isize, isize), grid: &[Vec<Cell>]) -> (i8, i8) {
         let head = (self.x as usize, self.y as usize);
         let mut next_dir = self.cycle_table[head.0][head.1].1;
 
         if (self.length as f32) < (0.5 * self.grid_size as f32 * self.grid_size as f32) {
             let path = self.create_shortest_path(food, grid);
-            if path.len() > 0 {
+            if !path.is_empty() {
                 let tail = self.segments[0];
                 let next = grid[(head.0 as i8 + path[0].0) as usize][(head.1 as i8 + path[0].1) as usize].pos();
+
                 let tail_idx = self.cycle_table[tail.0 as usize][tail.1 as usize].0;
                 let head_idx = self.cycle_table[head.0][head.1].0;
                 let next_idx = self.cycle_table[next.0 as usize][next.1 as usize].0;
                 let food_idx = self.cycle_table[food.0 as usize][food.1 as usize].0;
+
                 if !((path.len() == 1) && ((food_idx - tail_idx).abs() == 1)) {
                     let head_idx_rel = self.relative_dist(tail_idx, head_idx);
                     let next_idx_rel = self.relative_dist(tail_idx, next_idx);
                     let food_idx_rel = self.relative_dist(tail_idx, food_idx);
+
                     if (next_idx_rel > head_idx_rel) && (next_idx_rel <= food_idx_rel) {
                         next_dir = path[0];
                     }
                 }
             }
         }
-        return next_dir;
+
+        next_dir
     }
 
     pub fn draw_debug(&self, tilesize: f32, font: Font) {
@@ -432,7 +460,8 @@ impl Snake {
             }
         }
     }
-    pub fn update(&mut self, food: &mut (isize, isize), grid: &Vec<Vec<Cell>>) {
+
+    pub fn update(&mut self, food: &mut (isize, isize), grid: &[Vec<Cell>]) {
         let time_now = SystemTime::now();
 
         if time_now.duration_since(self.time).unwrap() >= self.time_step {
@@ -442,15 +471,18 @@ impl Snake {
             if new_dir != (0, 0) {
                 self.dir = new_dir;
             }
+
             self.x += self.dir.0 as isize;
             self.y += self.dir.1 as isize;
             self.segments.push((self.x, self.y));
+
             if (self.x == food.0) && (self.y == food.1) {
                 self.length += 1;
                 self.respawn_food(food);
                 self.score += 1;
             }
-            self.segments = self.segments[((self.segments.len() - self.length as usize) as usize)..].to_vec();
+
+            self.segments = self.segments[(self.segments.len() - self.length as usize)..].to_vec();
             if self.length >= (self.grid_size as isize * self.grid_size as isize) - 1 {
                 self.has_won = true;
             }
