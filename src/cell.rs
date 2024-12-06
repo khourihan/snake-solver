@@ -1,149 +1,75 @@
-use macroquad::prelude::{draw_circle, draw_rectangle, Color};
+use bevy::{prelude::*, window::PrimaryWindow};
 
-pub struct Cell {
-    pub x: usize,
-    pub y: usize,
-    pub contents: u8,
-    pub snake_segment: isize
+use crate::{arena::Cell, settings::Settings};
+
+#[derive(Component)]
+pub struct DrawCell {
+    pub pos: UVec2,
 }
 
-impl Cell {
-    pub fn new(x: usize, y: usize) -> Self {
-        Self {
-            x,
-            y,
-            contents: 0,
-            snake_segment: -1
+#[derive(Component)]
+pub struct DrawCellTransform {
+    /// Size of the cell, where `Vec2::ONE` is a full cell.
+    pub size: Vec2,
+    /// Offset of the cell inside a full cell.
+    pub offset: Vec2,
+}
+
+#[derive(Component)]
+pub struct ForegroundCell {
+    pub contents: Cell,
+}
+
+pub fn setup_cells(
+    mut commands: Commands,
+    settings: Res<Settings>,
+) {
+    for x in 0..settings.arena_size.x {
+        for y in 0..settings.arena_size.y {
+            let color = if (x + y) % 2 == 0 {
+                settings.colors.background_light
+            } else {
+                settings.colors.background_dark
+            };
+
+            commands.spawn((
+                DrawCell {
+                    pos: UVec2::new(x, y),
+                },
+                Sprite::from_color(color, Vec2::ONE),
+                Transform::default(),
+                Visibility::default(),
+            ));
         }
     }
+}
 
-    pub fn is_empty(&self) -> bool {
-        self.contents == 0
-    }
+pub fn update_cell_transform(
+    windows: Query<&Window, With<PrimaryWindow>>,
+    settings: Res<Settings>,
+    mut cells: Query<(&DrawCell, &mut Transform, Option<&DrawCellTransform>, Option<&ForegroundCell>)>
+) {
+    let window = windows.single();
+    let mut window_size = window.size();
 
-    pub fn is_food(&self) -> bool {
-        self.contents == 1
-    }
+    let max_dim = if window_size.x > window_size.y { 0 } else { 1 };
+    let aspect = window_size[1 - max_dim] / window_size[max_dim];
 
-    pub fn is_segment(&self) -> bool {
-        self.contents == 2
-    }
+    let mut tile_size = window_size / settings.arena_size.as_vec2();
+    tile_size[max_dim] *= aspect;
+    window_size[max_dim] *= aspect;
 
-    pub fn is_head(&self) -> bool {
-        self.contents == 3
-    }
+    for (cell, mut transform, cell_transform, fg) in &mut cells {
+        let (size, offset) = if let Some(t) = cell_transform {
+            (t.size, t.offset)
+        } else {
+            (Vec2::ONE, Vec2::ZERO)
+        };
 
-    pub fn is_snake(&self) -> bool {
-        (self.contents == 2) || (self.contents == 3)
-    }
+        transform.scale = Vec3::new(tile_size.x * size.x, tile_size.y * size.y, 1.0);
 
-    pub fn set_empty(&mut self) {
-        self.contents = 0;
-    }
-
-    pub fn set_food(&mut self) {
-        self.contents = 1;
-    }
-
-    pub fn set_segment(&mut self, index: usize) {
-        self.contents = 2;
-        self.snake_segment = index as isize;
-    }
-
-    pub fn set_head(&mut self) {
-        self.contents = 3;
-    }
-
-    pub fn pos(&self) -> (isize, isize) {
-        (self.x as isize, self.y as isize)
-    }
-
-    pub fn draw(&self, tilesize: f32, neighbors: Vec<bool>) {
-        let x_pos = self.x as f32 * tilesize;
-        let y_pos = self.y as f32 * tilesize;
-        let padding = tilesize / 20.0;
-
-        match self.contents {
-            1 => {
-                draw_circle(x_pos + tilesize / 2.0, y_pos + tilesize / 2.0, (tilesize - padding * 2.0) / 2.0, Color::from_rgba(224, 176, 31, 255));
-            },
-            2 => {
-                draw_circle(x_pos + tilesize / 2.0, y_pos + tilesize / 2.0, (tilesize - padding * 2.0) / 2.0, Color::from_rgba(45, 148, 10, 255));
-
-                for (dir, value) in neighbors.iter().enumerate() {
-                    if *value {
-                        let mut pos = (x_pos, y_pos);
-                        let mut dims = (tilesize, tilesize);
-
-                        match dir {
-                            0 => {
-                                pos.0 += padding;
-                                dims.0 -= padding * 2.0;
-                                dims.1 /= 2.0;
-                            },
-                            1 => {
-                                pos.0 += padding;
-                                pos.1 += tilesize / 2.0;
-                                dims.0 -= padding * 2.0;
-                                dims.1 /= 2.0;
-                            },
-                            2 => {
-                                pos.1 += padding;
-                                dims.1 -= padding * 2.0;
-                                dims.0 /= 2.0;
-                            },
-                            3 => {
-                                pos.1 += padding;
-                                pos.0 += tilesize / 2.0;
-                                dims.1 -= padding * 2.0;
-                                dims.0 /= 2.0;
-                            },
-                            _ => {}
-                        }
-
-                        draw_rectangle(pos.0, pos.1, dims.0, dims.1, Color::from_rgba(45, 148, 10, 255));
-                    }
-                }
-            },
-            3 => {
-                draw_circle(x_pos + tilesize / 2.0, y_pos + tilesize / 2.0, (tilesize - padding * 2.0) / 2.0, Color::from_rgba(150, 235, 89, 255));
-
-                for (dir, value) in neighbors.iter().enumerate() {
-                    if *value {
-                        let mut pos = (x_pos, y_pos);
-                        let mut dims = (tilesize, tilesize);
-
-                        match dir {
-                            0 => {
-                                pos.0 += padding;
-                                dims.0 -= padding * 2.0;
-                                dims.1 /= 2.0;
-                            },
-                            1 => {
-                                pos.0 += padding;
-                                pos.1 += tilesize / 2.0;
-                                dims.0 -= padding * 2.0;
-                                dims.1 /= 2.0;
-                            },
-                            2 => {
-                                pos.1 += padding;
-                                dims.1 -= padding * 2.0;
-                                dims.0 /= 2.0;
-                            },
-                            3 => {
-                                pos.1 += padding;
-                                pos.0 += tilesize / 2.0;
-                                dims.1 -= padding * 2.0;
-                                dims.0 /= 2.0;
-                            },
-                            _ => {}
-                        }
-
-                        draw_rectangle(pos.0, pos.1, dims.0, dims.1, Color::from_rgba(150, 235, 89, 255));
-                    }
-                }
-            },
-            _ => {}
-        }
+        let pos = (cell.pos.as_vec2() + offset) / settings.arena_size.as_vec2() * window_size - (window_size / 2.0) + (tile_size / 2.0);
+        let z = if fg.is_some() { 1.0 } else { 0.0 };
+        transform.translation = Vec3::new(pos.x, pos.y, z);
     }
 }
