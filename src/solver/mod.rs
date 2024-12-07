@@ -1,36 +1,40 @@
-use astar::shortest_path;
-use bevy::{prelude::*, utils::HashMap};
+use astar::AstarSolver;
+use bevy::prelude::*;
 
 use crate::{arena::{Arena, Direction}, snake::Snake};
 
 mod astar;
+mod cycle;
+
+pub trait SolveMethod {
+    fn get_direction(&mut self, snake: &Snake, arena: &Arena) -> Direction;
+
+    fn debug_paths(&self, arena: &Arena) -> Vec<(UVec2, &[Direction])> {
+        Vec::new()
+    }
+}
 
 #[derive(Resource, Debug, Clone)]
-pub struct Solver {
-    pub shortest_path: Option<HashMap<UVec2, Direction>>,
+pub enum Solver {
+    Astar(AstarSolver),
 }
 
 impl Solver {
-    pub fn get_direction(&mut self, _snake: &Snake, arena: &Arena) -> Direction {
-        if let Some(route) = &mut self.shortest_path {
-            let dir = route.remove(&arena.head).unwrap();
-            if route.is_empty() {
-                self.shortest_path = None;
-            }
-            dir
-        } else {
-            let mut route = shortest_path(arena.head, arena.food.unwrap(), arena);
-            let dir = route.remove(&arena.head).unwrap();
-            self.shortest_path = Some(route);
-            dir
+    pub fn get_direction(&mut self, snake: &Snake, arena: &Arena) -> Direction {
+        match self {
+            Solver::Astar(s) => s.get_direction(snake, arena),
+        }
+    }
+
+    pub fn debug_paths(&self, arena: &Arena) -> Vec<(UVec2, &[Direction])> {
+        match self {
+            Solver::Astar(s) => s.debug_paths(arena),
         }
     }
 }
 
 impl Default for Solver {
     fn default() -> Self {
-        Self {
-            shortest_path: None,
-        }
+        Solver::Astar(AstarSolver::default())
     }
 }

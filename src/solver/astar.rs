@@ -1,14 +1,39 @@
 use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use priority_queue::PriorityQueue;
 
-use crate::arena::{Arena, Direction};
+use crate::{arena::{Arena, Direction}, snake::Snake};
+
+use super::SolveMethod;
+
+#[derive(Debug, Clone, Default)]
+pub struct AstarSolver {
+    pub shortest_path: Option<Vec<Direction>>,
+}
+
+impl SolveMethod for AstarSolver {
+    fn get_direction(&mut self, _snake: &Snake, arena: &Arena) -> Direction {
+        let shortest = shortest_path(arena.head, arena.food.unwrap(), arena);
+        let dir = *shortest.last().unwrap();
+        self.shortest_path = Some(shortest);
+
+        dir
+    }
+
+    fn debug_paths(&self, arena: &Arena) -> Vec<(UVec2, &[Direction])> {
+        if let Some(path) = &self.shortest_path {
+            vec![(arena.head, path)]
+        } else {
+            Vec::new()
+        }
+    }
+}
 
 pub(super) fn shortest_path(
     start: UVec2,
     goal: UVec2,
     arena: &Arena,
-) -> HashMap<UVec2, Direction> {
-    let mut route = HashMap::new();
+) -> Vec<Direction> {
+    let mut route = Vec::new();
     let visited = astar(start, goal, arena);
 
     let mut path_segment = goal;
@@ -18,7 +43,7 @@ pub(super) fn shortest_path(
         }
 
         let dir = Direction::from_offset(path_segment.as_ivec2() - parent.as_ivec2()).unwrap();
-        route.insert(parent, dir);
+        route.push(dir);
         path_segment = parent;
     }
 

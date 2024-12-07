@@ -9,6 +9,7 @@ pub struct Arena {
     pub size: UVec2,
     pub adjacencies: AdjacencyGraph,
     pub head: UVec2,
+    pub tail: UVec2,
     pub food: Option<UVec2>,
     cells: Vec<Cell>,
 }
@@ -148,6 +149,22 @@ impl Direction {
             Direction::Down => Direction::Up,
             Direction::Left => Direction::Right,
             Direction::Right => Direction::Left,
+        }
+    }
+
+    #[inline]
+    pub fn is_vertical(&self) -> bool {
+        match self {
+            Direction::Up | Direction::Down => true,
+            Direction::Left | Direction::Right => false,
+        }
+    }
+
+    #[inline]
+    pub fn is_horizontal(&self) -> bool {
+        match self {
+            Direction::Left | Direction::Right => true,
+            Direction::Up | Direction::Down => false,
         }
     }
 }
@@ -303,6 +320,7 @@ pub fn setup_arena(
         adjacencies: AdjacencyGraph::new(adjacencies, size),
         cells: vec![Cell::None; (size.x * size.y) as usize],
         head: UVec2::ZERO,
+        tail: UVec2::ZERO,
         food: None,
     })
 }
@@ -537,6 +555,10 @@ pub fn update_snake_position(
                 }
 
                 *distance += 1;
+
+                if *distance == snake.length {
+                    arena.tail = pos;
+                }
             },
             Cell::SnakeHead => {
                 *cell = Cell::SnakeTail { distance: 1 };

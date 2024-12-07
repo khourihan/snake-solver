@@ -31,7 +31,7 @@ pub fn debug_adjacencies(
     }
 }
 
-pub fn debug_shortest_path(
+pub fn debug_solver_paths(
     mut gizmos: Gizmos,
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
@@ -40,16 +40,24 @@ pub fn debug_shortest_path(
     let cell_size = compute_cell_size(windows.single(), arena.size);
     let cell = cell_size.0;
 
-    if let Some(route) = &solver.shortest_path {
-        for (pos, dir) in route.iter() {
-            let pos = get_cell_center(*pos, arena.size, cell_size);
+    let colors = [
+        colors::AQUA,
+        colors::GREEN,
+    ];
+
+    for (i, (mut pos, path)) in solver.debug_paths(&arena).into_iter().enumerate() {
+        let col = colors[i % colors.len()];
+
+        for dir in path.iter().take(path.len() - 1) {
+            let p = get_cell_center(pos, arena.size, cell_size);
+            pos = (pos.as_ivec2() + dir.offset()).as_uvec2();
 
             match dir {
-                Direction::Up => gizmos.line_2d(pos, pos + Vec2::new(0.0, cell.y), colors::AQUA),
-                Direction::Down => gizmos.line_2d(pos, pos - Vec2::new(0.0, cell.y), colors::AQUA),
-                Direction::Left => gizmos.line_2d(pos, pos - Vec2::new(cell.x, 0.0), colors::AQUA),
-                Direction::Right => gizmos.line_2d(pos, pos + Vec2::new(cell.x, 0.0), colors::AQUA),
-            }
+                Direction::Up => gizmos.line_2d(p, p + Vec2::new(0.0, cell.y), col),
+                Direction::Down => gizmos.line_2d(p, p + Vec2::new(0.0, -cell.y), col),
+                Direction::Left => gizmos.line_2d(p, p + Vec2::new(-cell.x, 0.0), col),
+                Direction::Right => gizmos.line_2d(p, p + Vec2::new(cell.x, 0.0), col),
+            };
         }
     }
 }

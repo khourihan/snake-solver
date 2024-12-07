@@ -49,6 +49,10 @@ impl AdjacencyGraph {
         neighbors
     }
 
+    pub fn contains(&self, pos: UVec2) -> bool {
+        self.graph.contains_key(&pos)
+    }
+
     pub fn remove(&mut self, pos: UVec2) {
         self.graph.remove(&pos);
 

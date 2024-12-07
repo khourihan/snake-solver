@@ -39,7 +39,7 @@ fn main() {
             arena::update_cell,
             cell::update_cell_transform,
             // debug::debug_adjacencies,
-            debug::debug_shortest_path,
+            debug::debug_solver_paths,
         ))
         .run();
 }

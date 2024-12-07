@@ -29,6 +29,7 @@ pub fn setup_snake(
     let head = arena.size / 2;
     let tail = head + UVec2::new(1, 0);
     arena.head = head;
+    arena.tail = tail;
 
     for pos in arena.positions() {
         let cell = arena.get_cell_unchecked_mut(pos);
