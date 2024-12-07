@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use rand::seq::IteratorRandom;
 
 use crate::{arena::{Arena, Cell, Direction, Directions}, game::LastSolverInput};
 
@@ -38,7 +39,7 @@ pub fn setup_snake(
     }
 }
 
-pub fn update_snake_direction(
+pub fn update_snake_direction_human(
     keys: Res<LastSolverInput>,
     mut snake: ResMut<Snake>,
 ) {
@@ -61,4 +62,18 @@ pub fn update_snake_direction(
         snake.direction = Direction::Right;
         snake.possible_directions = !Directions::LEFT;
     }
+}
+
+pub fn compute_snake_direction(
+    mut snake: ResMut<Snake>,
+) {
+    let mut rng = rand::thread_rng();
+    let choice = [
+        snake.direction,
+        snake.direction.rotate_clockwise(),
+        snake.direction.rotate_counterclockwise(),
+    ].into_iter().choose(&mut rng).unwrap();
+
+    snake.possible_directions = !Directions::from(choice.flip());
+    snake.direction = choice;
 }

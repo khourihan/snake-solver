@@ -1,12 +1,19 @@
-use std::{num::{NonZero, NonZeroU32}, time::{Duration, Instant}};
+use std::{num::{NonZero, NonZeroU32}, time::Duration};
 
-use bevy::{app::MainScheduleOrder, ecs::schedule::ScheduleLabel, prelude::*, utils::HashSet};
+use bevy::{app::MainScheduleOrder, ecs::schedule::ScheduleLabel, prelude::*};
 
 #[derive(States, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub enum GameState {
     Running,
     #[default]
     Stopped,
+}
+
+#[derive(States, Hash, Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum GameMode {
+    #[default]
+    Human,
+    Computer,
 }
 
 pub fn restart(
@@ -114,6 +121,12 @@ fn run_solve_schedule(world: &mut World) {
         world.resource_mut::<LastSolverInput>().last = None;
 
         for _ in 0..substeps - 1 {
+            let state = world.resource::<State<GameState>>();
+            
+            if *state == GameState::Stopped {
+                return;
+            }
+
             schedule.run(world);
         }
     });

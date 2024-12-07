@@ -95,12 +95,42 @@ impl Direction {
     pub const RIGHT_OFFSET: IVec2 = IVec2::new(1, 0);
 
     #[inline]
-    pub fn offset(&self) -> IVec2 {
+    pub const fn offset(&self) -> IVec2 {
         match self {
             Direction::Up => Self::UP_OFFSET,
             Direction::Down => Self::DOWN_OFFSET,
             Direction::Left => Self::LEFT_OFFSET,
             Direction::Right => Self::RIGHT_OFFSET,
+        }
+    }
+
+    #[inline]
+    pub const fn rotate_clockwise(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Right,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Right => Direction::Down,
+        }
+    }
+
+    #[inline]
+    pub const fn rotate_counterclockwise(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Left,
+            Direction::Down => Direction::Right,
+            Direction::Left => Direction::Down,
+            Direction::Right => Direction::Up,
+        }
+    }
+
+    #[inline]
+    pub const fn flip(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
         }
     }
 }
@@ -124,6 +154,17 @@ impl Directions {
     #[inline]
     pub fn right(&self) -> bool {
         self.contains(Directions::RIGHT)
+    }
+}
+
+impl From<Direction> for Directions {
+    fn from(value: Direction) -> Self {
+        match value {
+            Direction::Up => Directions::UP,
+            Direction::Down => Directions::DOWN,
+            Direction::Left => Directions::LEFT,
+            Direction::Right => Directions::RIGHT,
+        }
     }
 }
 
@@ -267,9 +308,8 @@ pub fn update_cell(
                     positions.remove(&pos);
                 },
                 Cell::SnakeTail { distance } => {
-                    let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance - 1 })
-                        | arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
-                        | arena.neighbors_matching(pos, Cell::SnakeHead);
+                    let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
+                        | arena.neighbors_matching(pos, if *distance == 1 { Cell::SnakeHead } else { Cell::SnakeTail { distance: distance - 1 } });
 
                     let sizes_offsets = get_sizes_offsets(dirs);
 
@@ -344,9 +384,8 @@ pub fn update_cell(
 
             match ty {
                 Cell::SnakeTail { distance } => {
-                    let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance - 1 })
-                        | arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
-                        | arena.neighbors_matching(pos, Cell::SnakeHead);
+                    let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
+                        | arena.neighbors_matching(pos, if *distance == 1 { Cell::SnakeHead } else { Cell::SnakeTail { distance: distance - 1 } });
 
                     let sizes_offsets = get_sizes_offsets(dirs);
 
@@ -449,9 +488,9 @@ pub fn update_snake_position(
             Cell::SnakeTail { distance } => {
                 if *distance >= snake.length {
                     remove = Some(pos);
-                } else {
-                    *distance += 1;
                 }
+
+                *distance += 1;
             },
             Cell::SnakeHead => {
                 *cell = Cell::SnakeTail { distance: 1 };
@@ -462,37 +501,63 @@ pub fn update_snake_position(
         }
     }
 
+    if let Some(next_head) = next_head {
+        if let Some(next) = arena.get_cell_mut(next_head) {
+            match next {
+                Cell::None => {
+                    *next = Cell::SnakeHead;
+                },
+                Cell::SnakeTail { .. } => {
+                    for (_pos, cell) in arena.cells_mut() {
+                        if let Cell::SnakeTail { distance } = cell {
+                            *distance -= 1;
+
+                            if *distance == 0 {
+                                *cell = Cell::SnakeHead;
+                            }
+                        }
+                    }
+
+                    game_state.set(GameState::Stopped);
+                    return;
+                },
+                Cell::Food => {
+                    snake.length += 1;
+                    *next = Cell::SnakeHead;
+                    arena.contains_food = false;
+                },
+                Cell::SnakeHead => unreachable!(),
+            }
+        } else {
+            for (_pos, cell) in arena.cells_mut() {
+                if let Cell::SnakeTail { distance } = cell {
+                    *distance -= 1;
+
+                    if *distance == 0 {
+                        *cell = Cell::SnakeHead;
+                    }
+                }
+            }
+
+            game_state.set(GameState::Stopped);
+            return;
+        }
+    }
+
     if let Some(pos) = remove {
         let cell = arena.get_cell_unchecked_mut(pos);
         *cell = Cell::None;
     }
-
-    let Some(next_head) = next_head else { return };
-
-    if let Some(next) = arena.get_cell_mut(next_head) {
-        match next {
-            Cell::None => {
-                *next = Cell::SnakeHead;
-            },
-            Cell::SnakeTail { .. } => {
-                game_state.set(GameState::Stopped);
-            },
-            Cell::Food => {
-                snake.length += 1;
-                *next = Cell::SnakeHead;
-                arena.contains_food = false;
-            },
-            Cell::SnakeHead => unreachable!(),
-        }
-    } else {
-        game_state.set(GameState::Stopped);
-    }
 }
 
 pub fn check_win(
-
+    arena: Res<Arena>,
+    snake: Res<Snake>,
+    mut game_state: ResMut<NextState<GameState>>,
 ) {
-    // TODO:
+    if snake.length >= arena.cells.len() - 1 {
+        game_state.set(GameState::Stopped);
+    }
 }
 
 pub fn spawn_food(
@@ -518,4 +583,29 @@ pub fn respawn_food(
     mut arena: ResMut<Arena>,
 ) {
     arena.contains_food = false;
+}
+
+impl std::fmt::Debug for Arena {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for y in 0..self.size.y {
+            for x in 0..self.size.x {
+                let cell = self.get_cell_unchecked(UVec2::new(x, y));
+                match cell {
+                    Cell::None => write!(f, ".")?,
+                    Cell::SnakeTail { distance } => {
+                        if *distance < 10 {
+                            write!(f, "{}", distance)?
+                        } else {
+                            write!(f, "+")?
+                        }
+                    },
+                    Cell::SnakeHead => write!(f, "@")?,
+                    Cell::Food => write!(f, "*")?,
+                }
+            }
+            writeln!(f)?;
+        }
+
+        Ok(())
+    }
 }
