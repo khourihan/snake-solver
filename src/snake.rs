@@ -1,7 +1,6 @@
 use bevy::prelude::*;
-use rand::seq::IteratorRandom;
 
-use crate::{arena::{Arena, Cell, Direction, Directions}, game::LastSolverInput};
+use crate::{arena::{Arena, Cell, Direction, Directions}, game::LastSolverInput, solver::{SnakeSolver, Solver}};
 
 #[derive(Resource)]
 pub struct Snake {
@@ -26,17 +25,27 @@ pub fn setup_snake(
 ) {
     commands.insert_resource(Snake::default());
 
+    arena.adjacencies.reset();
     let head = arena.size / 2;
     let tail = head + UVec2::new(1, 0);
-    for (pos, cell) in arena.cells_mut() {
+    for pos in arena.positions() {
+        let cell = arena.get_cell_unchecked_mut(pos);
+
         if pos == head {
             *cell = Cell::SnakeHead;
         } else if pos == tail {
             *cell = Cell::SnakeTail { distance: 1 };
         } else {
             *cell = Cell::None;
+            arena.adjacencies.insert(pos);
         }
     }
+}
+
+pub fn setup_solver(
+    mut commands: Commands,
+) {
+    commands.insert_resource(SnakeSolver::default());
 }
 
 pub fn update_snake_direction_human(
@@ -65,15 +74,12 @@ pub fn update_snake_direction_human(
 }
 
 pub fn compute_snake_direction(
+    arena: Res<Arena>,
+    mut solver: ResMut<SnakeSolver>,
     mut snake: ResMut<Snake>,
 ) {
-    let mut rng = rand::thread_rng();
-    let choice = [
-        snake.direction,
-        snake.direction.rotate_clockwise(),
-        snake.direction.rotate_counterclockwise(),
-    ].into_iter().choose(&mut rng).unwrap();
+    let direction = solver.get_direction(&mut snake, &arena);
 
-    snake.possible_directions = !Directions::from(choice.flip());
-    snake.direction = choice;
+    snake.possible_directions = !Directions::from(direction.flip());
+    snake.direction = direction;
 }

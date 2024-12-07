@@ -15,7 +15,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            arena_size: UVec2::splat(4),
+            arena_size: UVec2::splat(16),
             interval: Some(0.5),
             substeps: NonZero::new(1).unwrap(),
             colors: ColorSettings::default(),

@@ -11,8 +11,8 @@ pub enum GameState {
 
 #[derive(States, Hash, Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum GameMode {
-    #[default]
     Human,
+    #[default]
     Computer,
 }
 

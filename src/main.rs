@@ -5,6 +5,9 @@ mod settings;
 mod arena;
 mod snake;
 mod game;
+mod adjacencies;
+mod debug;
+mod solver;
 
 fn main() {
     App::new()
@@ -20,6 +23,7 @@ fn main() {
         ))
         .add_systems(PostStartup, (snake::setup_snake, settings::setup_time_steps))
         .add_systems(OnEnter(game::GameState::Running), (snake::setup_snake, arena::respawn_food))
+        .add_systems(OnEnter(game::GameMode::Computer), snake::setup_solver)
         .add_systems(Update, (
             game::restart,
             settings::update_time_steps,
@@ -34,6 +38,7 @@ fn main() {
         .add_systems(game::Draw, (
             arena::update_cell,
             cell::update_cell_transform,
+            debug::debug_adjacencies,
         ))
         .run();
 }

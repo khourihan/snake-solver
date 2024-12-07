@@ -2,11 +2,12 @@ use bevy::{prelude::*, utils::HashMap};
 use rand::seq::IteratorRandom;
 use smallvec::SmallVec;
 
-use crate::{cell::{DrawCell, DrawCellTransform, ForegroundCell}, game::GameState, settings::Settings, snake::Snake};
+use crate::{adjacencies::AdjacencyGraph, cell::{DrawCell, DrawCellTransform, ForegroundCell}, game::GameState, settings::Settings, snake::Snake};
 
 #[derive(Resource)]
 pub struct Arena {
     pub size: UVec2,
+    pub adjacencies: AdjacencyGraph,
     cells: Vec<Cell>,
     contains_food: bool,
 }
@@ -254,9 +255,37 @@ pub fn setup_arena(
     mut commands: Commands,
     settings: Res<Settings>,
 ) {
+    let size = settings.arena_size;
+    let mut adjacencies = HashMap::new();
+
+    for x in 0..size.x {
+        for y in 0..size.y {
+            let mut directions = Directions::NONE;
+            
+            if x != 0 {
+                directions |= Directions::LEFT;
+            } 
+
+            if x < size.x - 1 {
+                directions |= Directions::RIGHT;
+            }
+            
+            if y != 0 {
+                directions |= Directions::DOWN;
+            } 
+
+            if y < size.y - 1 {
+                directions |= Directions::UP;
+            }
+
+            adjacencies.insert(UVec2::new(x, y), directions);
+        }
+    }
+
     commands.insert_resource(Arena {
         size: settings.arena_size,
-        cells: vec![Cell::None; (settings.arena_size.x * settings.arena_size.y) as usize],
+        adjacencies: AdjacencyGraph::new(adjacencies, size),
+        cells: vec![Cell::None; (size.x * size.y) as usize],
         contains_food: false,
     })
 }
@@ -506,6 +535,7 @@ pub fn update_snake_position(
             match next {
                 Cell::None => {
                     *next = Cell::SnakeHead;
+                    arena.adjacencies.remove(next_head.as_uvec2());
                 },
                 Cell::SnakeTail { .. } => {
                     for (_pos, cell) in arena.cells_mut() {
@@ -525,6 +555,7 @@ pub fn update_snake_position(
                     snake.length += 1;
                     *next = Cell::SnakeHead;
                     arena.contains_food = false;
+                    arena.adjacencies.remove(next_head.as_uvec2());
                 },
                 Cell::SnakeHead => unreachable!(),
             }
@@ -547,6 +578,7 @@ pub fn update_snake_position(
     if let Some(pos) = remove {
         let cell = arena.get_cell_unchecked_mut(pos);
         *cell = Cell::None;
+        arena.adjacencies.insert(pos);
     }
 }
 
