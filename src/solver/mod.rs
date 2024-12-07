@@ -1,32 +1,36 @@
-use bevy::prelude::*;
-use random::RandomWalkSolver;
+use astar::shortest_path;
+use bevy::{prelude::*, utils::HashMap};
 
 use crate::{arena::{Arena, Direction}, snake::Snake};
 
-mod random;
 mod astar;
 
-pub trait Solver {
-    fn get_direction(&mut self, snake: &mut Snake, arena: &Arena) -> Direction;
-}
-
 #[derive(Resource, Debug, Clone)]
-pub enum SnakeSolver {
-    RandomWalk(RandomWalkSolver),
-    // Astar(AstarSolver),
+pub struct Solver {
+    pub shortest_path: Option<HashMap<UVec2, Direction>>,
 }
 
-impl Solver for SnakeSolver {
-    fn get_direction(&mut self, snake: &mut Snake, arena: &Arena) -> Direction {
-        match self {
-            SnakeSolver::RandomWalk(s) => s.get_direction(snake, arena),
-            // SnakeSolver::Astar(s) => s.get_direction(snake, arena),
+impl Solver {
+    pub fn get_direction(&mut self, _snake: &Snake, arena: &Arena) -> Direction {
+        if let Some(route) = &mut self.shortest_path {
+            let dir = route.remove(&arena.head).unwrap();
+            if route.is_empty() {
+                self.shortest_path = None;
+            }
+            dir
+        } else {
+            let mut route = shortest_path(arena.head, arena.food.unwrap(), arena);
+            let dir = route.remove(&arena.head).unwrap();
+            self.shortest_path = Some(route);
+            dir
         }
     }
 }
 
-impl Default for SnakeSolver {
+impl Default for Solver {
     fn default() -> Self {
-        Self::RandomWalk(RandomWalkSolver)
+        Self {
+            shortest_path: None,
+        }
     }
 }

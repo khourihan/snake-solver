@@ -29,16 +29,17 @@ fn main() {
             settings::update_time_steps,
         ))
         .add_systems(game::SolveStep, (
+            arena::spawn_food,
             snake::update_snake_direction_human.run_if(in_state(game::GameMode::Human)),
             snake::compute_snake_direction.run_if(in_state(game::GameMode::Computer)),
             arena::update_snake_position,
             arena::check_win,
-            arena::spawn_food,
         ).chain())
         .add_systems(game::Draw, (
             arena::update_cell,
             cell::update_cell_transform,
-            debug::debug_adjacencies,
+            // debug::debug_adjacencies,
+            debug::debug_shortest_path,
         ))
         .run();
 }

@@ -8,8 +8,9 @@ use crate::{adjacencies::AdjacencyGraph, cell::{DrawCell, DrawCellTransform, For
 pub struct Arena {
     pub size: UVec2,
     pub adjacencies: AdjacencyGraph,
+    pub head: UVec2,
+    pub food: Option<UVec2>,
     cells: Vec<Cell>,
-    contains_food: bool,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -78,7 +79,7 @@ impl<I: Iterator> Iterator for Cells<I> {
 }
 
 bitflags::bitflags! {
-    #[derive(Debug)]
+    #[derive(Debug, Clone, Copy)]
     pub struct Directions: u8 {
         const NONE = 0;
         const UP = 1 << 0;
@@ -102,6 +103,21 @@ impl Direction {
             Direction::Down => Self::DOWN_OFFSET,
             Direction::Left => Self::LEFT_OFFSET,
             Direction::Right => Self::RIGHT_OFFSET,
+        }
+    }
+
+    #[inline]
+    pub fn from_offset(offset: IVec2) -> Option<Direction> {
+        if offset.x == -1 {
+            Some(Direction::Left)
+        } else if offset.x == 1 {
+            Some(Direction::Right)
+        } else if offset.y == -1 {
+            Some(Direction::Down)
+        } else if offset.y == 1 {
+            Some(Direction::Up)
+        } else {
+            None
         }
     }
 
@@ -286,7 +302,8 @@ pub fn setup_arena(
         size: settings.arena_size,
         adjacencies: AdjacencyGraph::new(adjacencies, size),
         cells: vec![Cell::None; (size.x * size.y) as usize],
-        contains_food: false,
+        head: UVec2::ZERO,
+        food: None,
     })
 }
 
@@ -523,6 +540,7 @@ pub fn update_snake_position(
             },
             Cell::SnakeHead => {
                 *cell = Cell::SnakeTail { distance: 1 };
+                arena.adjacencies.remove(pos);
 
                 next_head = Some(pos.as_ivec2() + snake.direction.offset());
             },
@@ -531,11 +549,12 @@ pub fn update_snake_position(
     }
 
     if let Some(next_head) = next_head {
+        arena.head = next_head.as_uvec2();
+
         if let Some(next) = arena.get_cell_mut(next_head) {
             match next {
                 Cell::None => {
                     *next = Cell::SnakeHead;
-                    arena.adjacencies.remove(next_head.as_uvec2());
                 },
                 Cell::SnakeTail { .. } => {
                     for (_pos, cell) in arena.cells_mut() {
@@ -554,8 +573,7 @@ pub fn update_snake_position(
                 Cell::Food => {
                     snake.length += 1;
                     *next = Cell::SnakeHead;
-                    arena.contains_food = false;
-                    arena.adjacencies.remove(next_head.as_uvec2());
+                    arena.food = None;
                 },
                 Cell::SnakeHead => unreachable!(),
             }
@@ -595,31 +613,30 @@ pub fn check_win(
 pub fn spawn_food(
     mut arena: ResMut<Arena>,
 ) {
-    if arena.contains_food {
+    if arena.food.is_some() {
         return;
     }
 
-    arena.contains_food = true;
-
     let mut rng = rand::thread_rng();
     
-    let cell = arena.cells_mut()
+    let (pos, cell) = arena.cells_mut()
         .filter(|(_, cell)| **cell == Cell::None)
         .choose(&mut rng)
-        .unwrap().1;
+        .unwrap();
 
     *cell = Cell::Food;
+    arena.food = Some(pos);
 }
 
 pub fn respawn_food(
     mut arena: ResMut<Arena>,
 ) {
-    arena.contains_food = false;
+    arena.food = None;
 }
 
 impl std::fmt::Debug for Arena {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for y in 0..self.size.y {
+        for y in (0..self.size.y).rev() {
             for x in 0..self.size.x {
                 let cell = self.get_cell_unchecked(UVec2::new(x, y));
                 match cell {

@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow, color::palettes::css as colors};
 
-use crate::arena::Arena;
+use crate::{arena::{Arena, Direction}, solver::Solver};
 
 pub fn debug_adjacencies(
     mut gizmos: Gizmos,
@@ -27,6 +27,29 @@ pub fn debug_adjacencies(
 
         if dirs.left() {
             gizmos.line_2d(center, center - Vec2::new(half_cell.x, 0.0), colors::PINK)
+        }
+    }
+}
+
+pub fn debug_shortest_path(
+    mut gizmos: Gizmos,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    arena: Res<Arena>,
+    solver: Res<Solver>,
+) {
+    let cell_size = compute_cell_size(windows.single(), arena.size);
+    let cell = cell_size.0;
+
+    if let Some(route) = &solver.shortest_path {
+        for (pos, dir) in route.iter() {
+            let pos = get_cell_center(*pos, arena.size, cell_size);
+
+            match dir {
+                Direction::Up => gizmos.line_2d(pos, pos + Vec2::new(0.0, cell.y), colors::AQUA),
+                Direction::Down => gizmos.line_2d(pos, pos - Vec2::new(0.0, cell.y), colors::AQUA),
+                Direction::Left => gizmos.line_2d(pos, pos - Vec2::new(cell.x, 0.0), colors::AQUA),
+                Direction::Right => gizmos.line_2d(pos, pos + Vec2::new(cell.x, 0.0), colors::AQUA),
+            }
         }
     }
 }
