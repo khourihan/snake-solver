@@ -10,11 +10,13 @@ pub struct Arena {
     pub adjacencies: AdjacencyGraph,
     pub head: UVec2,
     pub tail: UVec2,
+    pub behind: UVec2,
     pub food: Option<UVec2>,
+    pub just_ate: bool,
     cells: Vec<Cell>,
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum Cell {
     None,
     SnakeTail {
@@ -202,6 +204,22 @@ impl From<Direction> for Directions {
     }
 }
 
+impl std::ops::Add<Direction> for UVec2 {
+    type Output = UVec2;
+
+    fn add(self, rhs: Direction) -> Self::Output {
+        (self.as_ivec2() + rhs.offset()).as_uvec2()
+    }
+}
+
+impl std::ops::Add<&Direction> for UVec2 {
+    type Output = UVec2;
+
+    fn add(self, rhs: &Direction) -> Self::Output {
+        (self.as_ivec2() + rhs.offset()).as_uvec2()
+    }
+}
+
 impl Arena {
     pub fn get_cell(&self, pos: IVec2) -> Option<&Cell> {
         if pos.x < 0 || pos.y < 0 || pos.x >= self.size.x as i32 || pos.y >= self.size.y as i32 {
@@ -321,7 +339,9 @@ pub fn setup_arena(
         cells: vec![Cell::None; (size.x * size.y) as usize],
         head: UVec2::ZERO,
         tail: UVec2::ZERO,
+        behind: UVec2::ZERO,
         food: None,
+        just_ate: false,
     })
 }
 
@@ -371,7 +391,7 @@ pub fn update_cell(
                     }
                     positions.remove(&pos);
                 },
-                Cell::SnakeTail { distance } => {
+                Cell::SnakeTail { distance, .. } => {
                     let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
                         | arena.neighbors_matching(pos, if *distance == 1 { Cell::SnakeHead } else { Cell::SnakeTail { distance: distance - 1 } });
 
@@ -447,7 +467,7 @@ pub fn update_cell(
             }
 
             match ty {
-                Cell::SnakeTail { distance } => {
+                Cell::SnakeTail { distance, .. } => {
                     let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
                         | arena.neighbors_matching(pos, if *distance == 1 { Cell::SnakeHead } else { Cell::SnakeTail { distance: distance - 1 } });
 
@@ -544,12 +564,13 @@ pub fn update_snake_position(
 ) {
     let mut next_head: Option<IVec2> = None;
     let mut remove: Option<UVec2> = None;
+    arena.just_ate = false;
 
     for pos in arena.positions() {
         let cell = arena.get_cell_unchecked_mut(pos);
 
         match cell {
-            Cell::SnakeTail { distance } => {
+            Cell::SnakeTail { distance, .. } => {
                 if *distance >= snake.length {
                     remove = Some(pos);
                 }
@@ -558,11 +579,14 @@ pub fn update_snake_position(
 
                 if *distance == snake.length {
                     arena.tail = pos;
+                } else if *distance == snake.length + 1 {
+                    arena.behind = pos;
                 }
             },
             Cell::SnakeHead => {
                 *cell = Cell::SnakeTail { distance: 1 };
                 arena.adjacencies.remove(pos);
+                arena.adjacencies.insert_snake_segment(pos, snake.direction);
 
                 next_head = Some(pos.as_ivec2() + snake.direction.offset());
             },
@@ -580,7 +604,7 @@ pub fn update_snake_position(
                 },
                 Cell::SnakeTail { .. } => {
                     for (_pos, cell) in arena.cells_mut() {
-                        if let Cell::SnakeTail { distance } = cell {
+                        if let Cell::SnakeTail { distance, .. } = cell {
                             *distance -= 1;
 
                             if *distance == 0 {
@@ -589,7 +613,7 @@ pub fn update_snake_position(
                         }
                     }
 
-                    info!("game lost");
+                    info!("game lost, {:?}", snake.direction);
                     game_state.set(GameState::Stopped);
                     return;
                 },
@@ -597,12 +621,13 @@ pub fn update_snake_position(
                     snake.length += 1;
                     *next = Cell::SnakeHead;
                     arena.food = None;
+                    arena.just_ate = true;
                 },
                 Cell::SnakeHead => unreachable!(),
             }
         } else {
             for (_pos, cell) in arena.cells_mut() {
-                if let Cell::SnakeTail { distance } = cell {
+                if let Cell::SnakeTail { distance, .. } = cell {
                     *distance -= 1;
 
                     if *distance == 0 {
@@ -611,7 +636,7 @@ pub fn update_snake_position(
                 }
             }
 
-            info!("game lost");
+            info!("game lost, {:?}", snake.direction);
             game_state.set(GameState::Stopped);
             return;
         }
@@ -621,6 +646,7 @@ pub fn update_snake_position(
         let cell = arena.get_cell_unchecked_mut(pos);
         *cell = Cell::None;
         arena.adjacencies.insert(pos);
+        arena.adjacencies.remove_snake_segment(pos);
     }
 }
 
@@ -629,7 +655,7 @@ pub fn check_win(
     snake: Res<Snake>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    if snake.length >= arena.cells.len() - 1 {
+    if snake.length >= arena.cells.len() {
         game_state.set(GameState::Stopped);
     }
 }
@@ -658,6 +684,15 @@ pub fn respawn_food(
     arena.food = None;
 }
 
+impl PartialEq for Cell {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::SnakeTail { distance: l_distance, .. }, Self::SnakeTail { distance: r_distance, .. }) => l_distance == r_distance,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
 impl std::fmt::Debug for Arena {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for y in (0..self.size.y).rev() {
@@ -665,7 +700,7 @@ impl std::fmt::Debug for Arena {
                 let cell = self.get_cell_unchecked(UVec2::new(x, y));
                 match cell {
                     Cell::None => write!(f, ".")?,
-                    Cell::SnakeTail { distance } => {
+                    Cell::SnakeTail { distance, .. } => {
                         if *distance < 10 {
                             write!(f, "{}", distance)?
                         } else {

@@ -3,22 +3,26 @@ use smallvec::SmallVec;
 
 use crate::arena::{Direction, Directions};
 
-pub struct AdjacencyGraph{
+#[derive(Debug, Clone)]
+pub struct AdjacencyGraph {
     size: UVec2,
     graph: HashMap<UVec2, Directions>,
+    snake: HashMap<UVec2, Direction>,
 }
 
 impl AdjacencyGraph {
     #[inline]
-    pub const fn new(adjacencies: HashMap<UVec2, Directions>, size: UVec2) -> AdjacencyGraph {
+    pub fn new(adjacencies: HashMap<UVec2, Directions>, size: UVec2) -> AdjacencyGraph {
         Self {
             size,
             graph: adjacencies,
+            snake: HashMap::new(),
         }
     }
 
     pub fn reset(&mut self) {
         self.graph.clear();
+        self.snake.clear();
     }
 
     #[inline]
@@ -47,6 +51,10 @@ impl AdjacencyGraph {
         }
 
         neighbors
+    }
+
+    pub fn get_segment_direction(&self, pos: UVec2) -> Option<Direction> {
+        self.snake.get(&pos).copied()
     }
 
     pub fn contains(&self, pos: UVec2) -> bool {
@@ -115,7 +123,19 @@ impl AdjacencyGraph {
         self.graph.insert(pos, dirs);
     }
 
+    pub fn insert_snake_segment(&mut self, pos: UVec2, direction: Direction) {
+        self.snake.insert(pos, direction);
+    }
+
+    pub fn remove_snake_segment(&mut self, pos: UVec2) {
+        self.snake.remove(&pos);
+    }
+
     pub fn nodes(&self) -> impl Iterator<Item = (&UVec2, &Directions)> {
         self.graph.iter()
+    }
+
+    pub fn snake_segments(&self) -> impl Iterator<Item = (&UVec2, &Direction)> {
+        self.snake.iter()
     }
 }

@@ -3,7 +3,7 @@ use std::collections::BinaryHeap;
 use bevy::prelude::*;
 use indexmap::map::Entry;
 
-use crate::{arena::{Arena, Direction}, snake::Snake};
+use crate::{adjacencies::AdjacencyGraph, arena::{Arena, Direction}, snake::Snake};
 
 use super::SolveMethod;
 
@@ -15,7 +15,7 @@ pub struct AstarSolver {
 
 impl SolveMethod for AstarSolver {
     fn get_direction(&mut self, snake: &Snake, arena: &Arena) -> Direction {
-        let shortest = shortest_path(arena.head, arena.food.unwrap(), snake.direction, arena);
+        let shortest = shortest_path(arena.head, arena.food.unwrap(), snake.direction, &arena.adjacencies);
 
         if let Some(shortest) = shortest {
             let dir = shortest[0];
@@ -28,9 +28,9 @@ impl SolveMethod for AstarSolver {
         }
     }
 
-    fn debug_paths(&self, _arena: &Arena) -> Vec<(UVec2, &[Direction])> {
+    fn debug_paths(&self, _arena: &Arena) -> Vec<(UVec2, Option<&[Direction]>)> {
         if let Some(path) = &self.shortest_path {
-            vec![(self.start, path)]
+            vec![(self.start, Some(path))]
         } else {
             Vec::new()
         }
@@ -45,16 +45,16 @@ pub(super) fn shortest_path(
     start: UVec2,
     goal: UVec2,
     direction: Direction,
-    arena: &Arena,
+    adjacencies: &AdjacencyGraph,
 ) -> Option<Vec<Direction>> {
-    astar(start, goal, direction, arena).map(|v| v.0)
+    astar(start, goal, direction, adjacencies).map(|v| v.0)
 }
 
 pub(super) fn astar(
     start: UVec2,
     goal: UVec2,
     direction: Direction,
-    arena: &Arena,
+    adjacencies: &AdjacencyGraph,
 ) -> Option<(Vec<Direction>, i32)> {
     let mut open_set = BinaryHeap::new();
     open_set.push(CostHolder {
@@ -78,7 +78,7 @@ pub(super) fn astar(
                 continue;
             }
 
-            arena.adjacencies.get_neighbors(node.0)
+            adjacencies.get_neighbors(node.0)
         };
 
         for successor in successors {

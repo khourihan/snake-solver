@@ -13,7 +13,7 @@ impl Default for Snake {
     fn default() -> Self {
         Self {
             direction: Direction::Left,
-            length: 1,
+            length: 2,
             possible_directions: !Directions::RIGHT,
         }
     }
@@ -26,10 +26,12 @@ pub fn setup_snake(
     commands.insert_resource(Snake::default());
 
     arena.adjacencies.reset();
-    let head = arena.size / 2;
-    let tail = head + UVec2::new(1, 0);
+    let head = arena.size / 2 - UVec2::new(1, 0);
+    let mid = head + UVec2::new(1, 0);
+    let tail = head + UVec2::new(2, 0);
     arena.head = head;
     arena.tail = tail;
+    arena.behind = tail + UVec2::new(1, 0);
 
     for pos in arena.positions() {
         let cell = arena.get_cell_unchecked_mut(pos);
@@ -37,8 +39,12 @@ pub fn setup_snake(
         if pos == head {
             *cell = Cell::SnakeHead;
             arena.adjacencies.insert(pos);
-        } else if pos == tail {
+        } else if pos == mid {
             *cell = Cell::SnakeTail { distance: 1 };
+            arena.adjacencies.insert_snake_segment(pos, Direction::Left);
+        } else if pos == tail {
+            *cell = Cell::SnakeTail { distance: 2 };
+            arena.adjacencies.insert_snake_segment(pos, Direction::Left);
         } else {
             *cell = Cell::None;
             arena.adjacencies.insert(pos);

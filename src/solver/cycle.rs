@@ -1,15 +1,15 @@
-use bevy::{math::UVec2, utils::{HashMap, HashSet}};
+use bevy::{math::UVec2, utils::HashSet};
 
-use crate::arena::{Arena, Direction};
+use crate::{adjacencies::AdjacencyGraph, arena::Direction};
 
+/// Computes the longest path from `start` by modifying the shortest path.
 pub(super) fn longest_path(
     start: UVec2,
-    goal: UVec2,
-    arena: &Arena,
+    adjacencies: &AdjacencyGraph,
     mut path: Vec<Direction>,
-) -> Vec<Direction> {
+) -> Option<Vec<Direction>> {
     if path.is_empty() {
-        return Vec::new();
+        return None;
     }
 
     let mut current = start;
@@ -49,8 +49,8 @@ pub(super) fn longest_path(
             let cur_test = cur_test.as_uvec2();
             let next_test = next_test.as_uvec2();
 
-            if arena.adjacencies.contains(cur_test) && !visited.contains(&cur_test)
-                && arena.adjacencies.contains(next_test) && !visited.contains(&next_test)
+            if adjacencies.contains(cur_test) && !visited.contains(&cur_test)
+                && adjacencies.contains(next_test) && !visited.contains(&next_test)
             {
                 visited.insert(cur_test);
                 visited.insert(next_test);
@@ -70,5 +70,5 @@ pub(super) fn longest_path(
         }
     }
 
-    path
+    Some(path)
 }

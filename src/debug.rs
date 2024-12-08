@@ -43,9 +43,13 @@ pub fn debug_solver_paths(
     let colors = [
         colors::AQUA,
         colors::GREEN,
+        colors::VIOLET,
+        colors::INDIAN_RED,
+        colors::GOLD,
     ];
 
     for (i, (mut pos, path)) in solver.debug_paths(&arena).into_iter().enumerate() {
+        let Some(path) = path else { continue };
         let col = colors[i % colors.len()];
 
         for dir in path.iter() {
@@ -59,6 +63,52 @@ pub fn debug_solver_paths(
                 Direction::Right => gizmos.line_2d(p, p + Vec2::new(cell.x, 0.0), col),
             };
         }
+    }
+}
+
+pub fn debug_solver_points(
+    mut gizmos: Gizmos,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    arena: Res<Arena>,
+    solver: Res<Solver>,
+) {
+    let cell_size = compute_cell_size(windows.single(), arena.size);
+    let radius = cell_size.0 / 6.0;
+
+    let colors = [
+        colors::AQUA,
+        colors::GREEN,
+        colors::VIOLET,
+        colors::INDIAN_RED,
+        colors::GOLD,
+    ];
+
+    for (i, point) in solver.debug_points(&arena).into_iter().enumerate() {
+        let Some(point) = point else { continue };
+        let col = colors[i % colors.len()];
+        let center = get_cell_center(point, arena.size, cell_size);
+
+        gizmos.circle_2d(center, radius.x, col);
+    }
+}
+
+pub fn debug_snake_segments(
+    mut gizmos: Gizmos,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    arena: Res<Arena>,
+) {
+    let cell_size = compute_cell_size(windows.single(), arena.size);
+    let half_cell = cell_size.0 / 2.0;
+
+    for (pos, dir) in arena.adjacencies.snake_segments() {
+        let center = get_cell_center(*pos, arena.size, cell_size);
+
+        match dir {
+            Direction::Up => gizmos.arrow_2d(center, center + Vec2::new(0.0, half_cell.y), colors::DEEP_PINK),
+            Direction::Down => gizmos.arrow_2d(center, center - Vec2::new(0.0, half_cell.y), colors::DEEP_PINK),
+            Direction::Left => gizmos.arrow_2d(center, center - Vec2::new(half_cell.x, 0.0), colors::DEEP_PINK),
+            Direction::Right => gizmos.arrow_2d(center, center + Vec2::new(half_cell.x, 0.0), colors::DEEP_PINK),
+        };
     }
 }
 
