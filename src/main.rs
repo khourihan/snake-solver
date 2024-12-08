@@ -40,9 +40,9 @@ fn main() {
             cell::update_cell_transform,
             // debug::debug_adjacencies,
             // debug::debug_snake_segments,
-            debug::debug_solver_paths,
-            debug::debug_solver_points,
             debug::debug_solver_tables,
+            debug::debug_solver_paths.after(debug::debug_solver_tables),
+            debug::debug_solver_points,
         ))
         .run();
 }

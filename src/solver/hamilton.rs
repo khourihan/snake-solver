@@ -8,6 +8,8 @@ use super::{astar::shortest_path, cycle::longest_path, SolveMethod};
 pub struct HamiltonSolver {
     size: UVec2,
     cycle: Vec<CycleCell>,
+    head: UVec2,
+    shortest_path: Option<Vec<Direction>>,
 }
 
 impl SolveMethod for HamiltonSolver {
@@ -42,14 +44,48 @@ impl SolveMethod for HamiltonSolver {
 
     fn get_direction(&mut self, snake: &Snake, arena: &Arena) -> Direction {
         let mut dir = self.cycle[(arena.head.y * self.size.x + arena.head.x) as usize].direction;
+        let food_pos = arena.food.unwrap();
+        self.shortest_path = None;
+        self.head = arena.head;
+
+        let dist = |p1: usize, mut p2: usize| {
+            if p1 > p2 {
+                p2 += (self.size.x * self.size.y) as usize;
+            }
+            p2 - p1
+        };
+
+        if (snake.length as u32) < arena.size.x * arena.size.y / 2 {
+            if let Some(shortest) = shortest_path(arena.head, arena.food.unwrap(), snake.direction, &arena.adjacencies) {
+                let next_pos = arena.head + shortest[0];
+                let tail = self.cycle[(arena.tail.y * self.size.x + arena.tail.x) as usize].index;
+                let head = self.cycle[(arena.head.y * self.size.x + arena.head.x) as usize].index;
+                let next = self.cycle[(next_pos.y * self.size.x + next_pos.x) as usize].index;
+                let food = self.cycle[(food_pos.y * self.size.x + food_pos.x) as usize].index;
+
+                if !((shortest.len() == 1) && ((food as i32 - tail as i32).abs() == 1)) {
+                    let head_dist = dist(tail, head);
+                    let next_dist = dist(tail, next);
+                    let food_dist = dist(tail, food);
+
+                    if (next_dist > head_dist) && (next_dist <= food_dist) {
+                        dir = shortest[0];
+                        self.shortest_path = Some(shortest);
+                    }
+                }
+            }
+        }
+
         dir
+    }
+
+    fn debug_paths(&self, _arena: &Arena) -> Vec<(UVec2, Option<&[Direction]>)> {
+        vec![(self.head, self.shortest_path.as_deref())]
     }
 
     fn debug_tables(&self, _arena: &Arena) -> Vec<Option<&[CycleCell]>> {
         vec![None, Some(&self.cycle)]
     }
-
-    
 }
 
 #[derive(Debug, Clone, Copy, Default)]
