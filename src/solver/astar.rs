@@ -1,5 +1,7 @@
-use bevy::{prelude::*, utils::{HashMap, HashSet}};
-use priority_queue::PriorityQueue;
+use std::collections::BinaryHeap;
+
+use bevy::prelude::*;
+use indexmap::map::Entry;
 
 use crate::{arena::{Arena, Direction}, snake::Snake};
 
@@ -7,102 +9,154 @@ use super::SolveMethod;
 
 #[derive(Debug, Clone, Default)]
 pub struct AstarSolver {
-    pub shortest_path: Option<Vec<Direction>>,
+    shortest_path: Option<Vec<Direction>>,
+    start: UVec2,
 }
 
 impl SolveMethod for AstarSolver {
-    fn get_direction(&mut self, _snake: &Snake, arena: &Arena) -> Direction {
-        let shortest = shortest_path(arena.head, arena.food.unwrap(), arena);
-        let dir = *shortest.last().unwrap();
-        self.shortest_path = Some(shortest);
+    fn get_direction(&mut self, snake: &Snake, arena: &Arena) -> Direction {
+        let shortest = shortest_path(arena.head, arena.food.unwrap(), snake.direction, arena);
 
-        dir
+        if let Some(shortest) = shortest {
+            let dir = shortest[0];
+            self.shortest_path = Some(shortest);
+            self.start = arena.head;
+            dir
+        } else {
+            warn!("no shortest path found");
+            snake.direction
+        }
     }
 
-    fn debug_paths(&self, arena: &Arena) -> Vec<(UVec2, &[Direction])> {
+    fn debug_paths(&self, _arena: &Arena) -> Vec<(UVec2, &[Direction])> {
         if let Some(path) = &self.shortest_path {
-            vec![(arena.head, path)]
+            vec![(self.start, path)]
         } else {
             Vec::new()
         }
     }
 }
 
+/// Computes the shortest path from `start` to `goal`, given a starting `direction`.
+///
+/// The result is returned as a sequence of directions to the next node, with the first element
+/// being the direction from the starting node to the next node.
 pub(super) fn shortest_path(
     start: UVec2,
     goal: UVec2,
+    direction: Direction,
     arena: &Arena,
-) -> Vec<Direction> {
-    let mut route = Vec::new();
-    let visited = astar(start, goal, arena);
-
-    let mut path_segment = goal;
-    while let Some(&parent) = visited.get(&path_segment) {
-        if parent == UVec2::MAX {
-            break;
-        }
-
-        let dir = Direction::from_offset(path_segment.as_ivec2() - parent.as_ivec2()).unwrap();
-        route.push(dir);
-        path_segment = parent;
-    }
-
-    route
+) -> Option<Vec<Direction>> {
+    astar(start, goal, direction, arena).map(|v| v.0)
 }
 
 pub(super) fn astar(
     start: UVec2,
     goal: UVec2,
+    direction: Direction,
     arena: &Arena,
-) -> HashMap<UVec2, UVec2> {
-    let mut count = 0;
-    let mut open_set = PriorityQueue::new();
-    let mut visited = HashMap::new();
-    let mut g_score = HashMap::new();
-    let mut f_score = HashMap::new();
-    let mut open_set_hash = HashSet::new();
+) -> Option<(Vec<Direction>, i32)> {
+    let mut open_set = BinaryHeap::new();
+    open_set.push(CostHolder {
+        estimated_cost: 0,
+        cost: 0,
+        index: 0,
+    });
 
-    open_set.push((count, start), 0);
-    open_set_hash.insert(start);
-    visited.insert(start, UVec2::MAX);
+    let mut parents: FxIndexMap<(UVec2, Direction), (usize, i32)> = FxIndexMap::default();
+    parents.insert((start, direction), (usize::MAX, 0));
 
-    for pos in arena.positions() {
-        g_score.insert(pos, i32::MAX);
-        f_score.insert(pos, i32::MAX);
-    }
-
-    g_score.insert(start, 0);
-    f_score.insert(start, heuristic(start, goal));
-
-    while let Some(((_, current), _)) = open_set.pop() {
-        open_set_hash.remove(&current);
-
-        if current == goal {
-            break;
-        }
-
-        let neighbors = arena.adjacencies.get_neighbors(current);
-
-        for neighbor in neighbors {
-            let temp_g_score = g_score.get(&current).unwrap() + 1;
-
-            if temp_g_score < *g_score.get(&neighbor).unwrap() {
-                let f_score_neighbor = temp_g_score + heuristic(neighbor, goal);
-                visited.insert(neighbor, current);
-                g_score.insert(neighbor, temp_g_score);
-                f_score.insert(neighbor, f_score_neighbor);
-
-                if !open_set_hash.contains(&neighbor) {
-                    count += 1;
-                    open_set.push((count, neighbor), -f_score_neighbor);
-                    open_set_hash.insert(neighbor);
-                }
+    while let Some(CostHolder { cost, index, .. }) = open_set.pop() {
+        let successors = {
+            let (node, &(_, c)) = parents.get_index(index).unwrap();
+            if node.0 == goal {
+                let path = reconstruct_path(&parents, index);
+                return Some((path, cost));
             }
+            
+            if cost > c {
+                continue;
+            }
+
+            arena.adjacencies.get_neighbors(node.0)
+        };
+
+        for successor in successors {
+            let new_cost = cost + 1;
+            let h;
+            let n;
+
+            match parents.entry(successor) {
+                Entry::Vacant(e) => {
+                    h = heuristic(e.key().0, goal);
+                    n = e.index();
+                    e.insert((index, new_cost));
+                },
+                Entry::Occupied(mut e) => {
+                    if e.get().1 > new_cost {
+                        h = heuristic(e.key().0, goal);
+                        n = e.index();
+                        e.insert((index, new_cost));
+                    } else {
+                        continue;
+                    }
+                },
+            }
+
+            open_set.push(CostHolder {
+                estimated_cost: new_cost + h,
+                cost: new_cost,
+                index: n,
+            });
         }
     }
 
-    visited
+    None
 }
+
+fn reconstruct_path(parents: &FxIndexMap<(UVec2, Direction), (usize, i32)>, mut i: usize) -> Vec<Direction> {
+    let path = std::iter::from_fn(|| {
+        parents.get_index(i).map(|(node, value)| {
+            i = value.0;
+            node
+        })
+    })
+        .map(|(_pos, dir)| *dir)
+        .collect::<Vec<Direction>>();
+
+    path.into_iter().rev().skip(1).collect()
+}
+
+struct CostHolder<C> {
+    estimated_cost: C,
+    cost: C,
+    index: usize,
+}
+
+impl<C: PartialEq> PartialEq for CostHolder<C> {
+    fn eq(&self, other: &Self) -> bool {
+        self.estimated_cost.eq(&other.estimated_cost) && self.cost.eq(&other.cost)
+    }
+}
+
+impl<C: PartialEq> Eq for CostHolder<C> {}
+
+impl<C: Ord> Ord for CostHolder<C> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match other.estimated_cost.cmp(&self.estimated_cost) {
+            std::cmp::Ordering::Equal => self.cost.cmp(&other.cost),
+            s => s,
+        }
+    }
+}
+
+impl<C: Ord> PartialOrd for CostHolder<C> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+type FxIndexMap<K, V> = indexmap::IndexMap<K, V, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
 
 /// A* heuristic function. In this case, using manhattan distance over euclidean distance.
 fn heuristic(pos: UVec2, goal: UVec2) -> i32 {

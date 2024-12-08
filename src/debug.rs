@@ -48,7 +48,7 @@ pub fn debug_solver_paths(
     for (i, (mut pos, path)) in solver.debug_paths(&arena).into_iter().enumerate() {
         let col = colors[i % colors.len()];
 
-        for dir in path.iter().take(path.len() - 1) {
+        for dir in path.iter() {
             let p = get_cell_center(pos, arena.size, cell_size);
             pos = (pos.as_ivec2() + dir.offset()).as_uvec2();
 

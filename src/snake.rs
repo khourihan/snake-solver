@@ -84,6 +84,10 @@ pub fn compute_snake_direction(
 ) {
     let direction = solver.get_direction(&snake, &arena);
 
+    if !snake.possible_directions.contains(direction.into()) {
+        warn!("snake tried to travel in illegal direction");
+    }
+
     snake.possible_directions = !Directions::from(direction.flip());
     snake.direction = direction;
 }

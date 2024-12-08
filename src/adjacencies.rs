@@ -1,7 +1,7 @@
 use bevy::{math::UVec2, utils::HashMap};
 use smallvec::SmallVec;
 
-use crate::arena::Directions;
+use crate::arena::{Direction, Directions};
 
 pub struct AdjacencyGraph{
     size: UVec2,
@@ -26,24 +26,24 @@ impl AdjacencyGraph {
         self.graph.get(&pos).copied().unwrap_or(Directions::NONE)
     }
 
-    pub fn get_neighbors(&self, pos: UVec2) -> SmallVec<[UVec2; 4]> {
+    pub fn get_neighbors(&self, pos: UVec2) -> SmallVec<[(UVec2, Direction); 4]> {
         let dirs = self.get_directions(pos);
         let mut neighbors = SmallVec::new();
 
         if dirs.up() {
-            neighbors.push(pos + UVec2::new(0, 1));
+            neighbors.push((pos + UVec2::new(0, 1), Direction::Up));
         }
 
         if dirs.down() {
-            neighbors.push(pos - UVec2::new(0, 1));
+            neighbors.push((pos - UVec2::new(0, 1), Direction::Down));
         }
 
         if dirs.right() {
-            neighbors.push(pos + UVec2::new(1, 0));
+            neighbors.push((pos + UVec2::new(1, 0), Direction::Right));
         }
 
         if dirs.left() {
-            neighbors.push(pos - UVec2::new(1, 0));
+            neighbors.push((pos - UVec2::new(1, 0), Direction::Left));
         }
 
         neighbors

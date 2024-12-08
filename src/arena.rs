@@ -26,7 +26,7 @@ pub enum Cell {
     Food,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq)]
 pub enum Direction {
     Up,
     Down,
@@ -589,6 +589,7 @@ pub fn update_snake_position(
                         }
                     }
 
+                    info!("game lost");
                     game_state.set(GameState::Stopped);
                     return;
                 },
@@ -610,6 +611,7 @@ pub fn update_snake_position(
                 }
             }
 
+            info!("game lost");
             game_state.set(GameState::Stopped);
             return;
         }

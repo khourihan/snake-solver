@@ -16,7 +16,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             arena_size: UVec2::splat(16),
-            interval: Some(0.5),
+            interval: Some(0.1),
             substeps: NonZero::new(1).unwrap(),
             colors: ColorSettings::default(),
         }
