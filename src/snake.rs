@@ -22,9 +22,8 @@ impl Default for Snake {
 pub fn setup_snake(
     mut commands: Commands,
     mut arena: ResMut<Arena>,
+    mut solver: ResMut<Solver>,
 ) {
-    commands.insert_resource(Snake::default());
-
     arena.adjacencies.reset();
     let head = arena.size / 2 - UVec2::new(1, 0);
     let mid = head + UVec2::new(1, 0);
@@ -50,6 +49,10 @@ pub fn setup_snake(
             arena.adjacencies.insert(pos);
         }
     }
+
+    let snake = Snake::default();
+    solver.initialize(&snake, &arena);
+    commands.insert_resource(snake);
 }
 
 pub fn setup_solver(

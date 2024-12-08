@@ -42,6 +42,7 @@ fn main() {
             // debug::debug_snake_segments,
             debug::debug_solver_paths,
             debug::debug_solver_points,
+            debug::debug_solver_tables,
         ))
         .run();
 }

@@ -92,6 +92,41 @@ pub fn debug_solver_points(
     }
 }
 
+pub fn debug_solver_tables(
+    mut gizmos: Gizmos,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    arena: Res<Arena>,
+    solver: Res<Solver>,
+) {
+    let cell_size = compute_cell_size(windows.single(), arena.size);
+    let half_cell = cell_size.0 / 2.0;
+
+    let colors = [
+        colors::AQUA,
+        colors::GREEN,
+        colors::VIOLET,
+        colors::INDIAN_RED,
+        colors::GOLD,
+    ];
+
+    for (i, table) in solver.debug_tables(&arena).into_iter().enumerate() {
+        let Some(table) = table else { continue };
+        let col = colors[i % colors.len()];
+
+        for pos in arena.positions() {
+            let center = get_cell_center(pos, arena.size, cell_size);
+            let dir = table[(pos.y * arena.size.x + pos.x) as usize].direction;
+
+            match dir {
+                Direction::Up => gizmos.arrow_2d(center, center + Vec2::new(0.0, half_cell.x), col),
+                Direction::Down => gizmos.arrow_2d(center, center - Vec2::new(0.0, half_cell.x), col),
+                Direction::Left => gizmos.arrow_2d(center, center - Vec2::new(half_cell.x, 0.0), col),
+                Direction::Right => gizmos.arrow_2d(center, center + Vec2::new(half_cell.x, 0.0), col),
+            };
+        }
+    }
+}
+
 pub fn debug_snake_segments(
     mut gizmos: Gizmos,
     windows: Query<&Window, With<PrimaryWindow>>,
