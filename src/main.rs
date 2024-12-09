@@ -14,6 +14,7 @@ fn main() {
         .add_plugins((DefaultPlugins, game::SchedulesPlugin))
         .init_resource::<settings::Settings>()
         .init_resource::<snake::Snake>()
+        .init_resource::<game::GameOver>()
         .init_state::<game::GameState>()
         .init_state::<game::GameMode>()
         .add_systems(Startup, (

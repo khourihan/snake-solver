@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::HashMap};
 use rand::seq::IteratorRandom;
 use smallvec::SmallVec;
 
-use crate::{adjacencies::AdjacencyGraph, cell::{DrawCell, DrawCellTransform, ForegroundCell}, game::GameState, settings::Settings, snake::Snake};
+use crate::{adjacencies::AdjacencyGraph, cell::{DrawCell, DrawCellTransform, ForegroundCell}, game::{GameOver, GameState}, settings::Settings, snake::Snake};
 
 #[derive(Resource)]
 pub struct Arena {
@@ -561,7 +561,7 @@ pub fn update_cell(
 pub fn update_snake_position(
     mut arena: ResMut<Arena>,
     mut snake: ResMut<Snake>,
-    mut game_state: ResMut<NextState<GameState>>,
+    mut game_over: ResMut<GameOver>,
 ) {
     let mut next_head: Option<IVec2> = None;
     let mut remove: Option<UVec2> = None;
@@ -615,7 +615,7 @@ pub fn update_snake_position(
                     }
 
                     info!("game lost, {:?}", snake.direction);
-                    game_state.set(GameState::Stopped);
+                    game_over.0 = true;
                     return;
                 },
                 Cell::Food => {
@@ -638,7 +638,7 @@ pub fn update_snake_position(
             }
 
             info!("game lost, {:?}", snake.direction);
-            game_state.set(GameState::Stopped);
+            game_over.0 = true;
             return;
         }
     }
@@ -654,10 +654,10 @@ pub fn update_snake_position(
 pub fn check_win(
     arena: Res<Arena>,
     snake: Res<Snake>,
-    mut game_state: ResMut<NextState<GameState>>,
+    mut game_over: ResMut<GameOver>,
 ) {
     if snake.length >= arena.cells.len() {
-        game_state.set(GameState::Stopped);
+        game_over.0 = true;
     }
 }
 

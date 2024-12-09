@@ -1,6 +1,6 @@
 use std::{num::{NonZero, NonZeroU32}, time::Duration};
 
-use bevy::{app::MainScheduleOrder, ecs::schedule::ScheduleLabel, prelude::*};
+use bevy::{app::MainScheduleOrder, ecs::schedule::{ExecutorKind, ScheduleLabel}, prelude::*};
 
 #[derive(States, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub enum GameState {
@@ -15,6 +15,9 @@ pub enum GameMode {
     #[default]
     Computer,
 }
+
+#[derive(Resource, Default)]
+pub struct GameOver(pub bool);
 
 pub fn restart(
     keys: Res<ButtonInput<KeyCode>>,
@@ -102,12 +105,13 @@ fn run_solve_schedule(world: &mut World) {
         world.resource_mut::<LastSolverInput>().last = Some(pressed);
     };
 
-    let time = world.resource::<Time>();
-    let previous = world.resource::<PreviousTime>().0;
     let steps = world.resource::<TimeSteps>();
     let substeps: u32 = steps.substeps.into();
 
     if let Some(interval) = steps.interval {
+        let time = world.resource::<Time>();
+        let previous = world.resource::<PreviousTime>().0;
+
         let elapsed = time.elapsed();
         if (elapsed - previous).as_secs_f32() >= interval {
             world.resource_mut::<PreviousTime>().0 = elapsed;
@@ -121,13 +125,22 @@ fn run_solve_schedule(world: &mut World) {
         world.resource_mut::<LastSolverInput>().last = None;
 
         for _ in 0..substeps - 1 {
-            let state = world.resource::<State<GameState>>();
-            
-            if *state == GameState::Stopped {
-                return;
+            let mut game_over = world.resource_mut::<GameOver>();
+
+            if game_over.0 {
+                game_over.0 = false;
+                world.resource_mut::<NextState<GameState>>().set(GameState::Stopped);
+                break;
             }
 
             schedule.run(world);
         }
     });
+
+    let mut game_over = world.resource_mut::<GameOver>();
+
+    if game_over.0 {
+        game_over.0 = false;
+        world.resource_mut::<NextState<GameState>>().set(GameState::Stopped);
+    }
 }
