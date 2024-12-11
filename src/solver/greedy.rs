@@ -11,7 +11,7 @@ use super::{pathfinding::{longest_path, shortest_path}, SolveMethod};
 /// cycle nor follow it by the end of the game, meaning it can occasionally get stuck in unwinnable 
 /// loops and lose near the end. Also, the greedy solver cannot account for food spawning in the
 /// longest path from its head to its tail, which can cause it to lose by running into its tail.
-#[derive(Debug, Clone, Default)]
+#[derive(Reflect, Debug, Clone, Default)]
 pub struct GreedySolver {
     shortest_path: Option<Vec<Direction>>,
     longest_path: Option<Vec<Direction>>,

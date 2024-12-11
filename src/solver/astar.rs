@@ -4,7 +4,7 @@ use crate::{arena::{Arena, Direction}, snake::Snake};
 
 use super::{pathfinding::shortest_path, SolveMethod};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Reflect, Debug, Clone, Default)]
 pub struct AstarSolver {
     shortest_path: Option<Vec<Direction>>,
     start: UVec2,

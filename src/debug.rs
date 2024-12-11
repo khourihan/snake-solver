@@ -1,12 +1,17 @@
 use bevy::{prelude::*, window::PrimaryWindow, color::palettes::css as colors};
 
-use crate::{arena::{Arena, Direction}, solver::Solver};
+use crate::{arena::{Arena, Direction}, solver::Solver, ui::Configuration};
 
 pub fn debug_adjacencies(
     mut gizmos: Gizmos,
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
+    config: Res<Configuration>
 ) {
+    if !config.debug_adjacencies {
+        return;
+    }
+
     let cell_size = compute_cell_size(windows.single(), arena.size);
     let half_cell = cell_size.0 / 2.0;
 
@@ -36,7 +41,12 @@ pub fn debug_solver_paths(
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
     solver: Res<Solver>,
+    config: Res<Configuration>
 ) {
+    if !config.debug_solver_paths {
+        return;
+    }
+
     let cell_size = compute_cell_size(windows.single(), arena.size);
     let cell = cell_size.0;
 
@@ -71,7 +81,12 @@ pub fn debug_solver_points(
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
     solver: Res<Solver>,
+    config: Res<Configuration>
 ) {
+    if !config.debug_solver_points {
+        return;
+    }
+
     let cell_size = compute_cell_size(windows.single(), arena.size);
     let radius = cell_size.0 / 6.0;
 
@@ -97,7 +112,12 @@ pub fn debug_solver_tables(
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
     solver: Res<Solver>,
+    config: Res<Configuration>,
 ) {
+    if !config.debug_solver_tables {
+        return;
+    }
+
     let cell_size = compute_cell_size(windows.single(), arena.size);
     let cell = cell_size.0;
 

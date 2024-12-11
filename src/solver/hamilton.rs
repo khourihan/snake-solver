@@ -1,10 +1,10 @@
-use bevy::math::UVec2;
+use bevy::{math::UVec2, reflect::Reflect};
 
 use crate::{arena::{Arena, Direction}, snake::Snake};
 
 use super::{pathfinding::{longest_path, shortest_path}, SolveMethod};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Reflect, Debug, Clone, Default)]
 pub struct HamiltonSolver {
     size: UVec2,
     cycle: Vec<CycleCell>,
@@ -88,7 +88,7 @@ impl SolveMethod for HamiltonSolver {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Reflect, Debug, Clone, Copy, Default)]
 pub struct CycleCell {
     pub index: usize,
     pub direction: Direction,

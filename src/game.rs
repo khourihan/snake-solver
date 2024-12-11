@@ -5,6 +5,7 @@ use bevy::{app::MainScheduleOrder, ecs::schedule::ScheduleLabel, prelude::*};
 #[derive(States, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub enum GameState {
     Running,
+    Paused,
     #[default]
     Stopped,
 }
@@ -18,15 +19,6 @@ pub enum GameMode {
 
 #[derive(Resource, Default)]
 pub struct GameOver(pub bool);
-
-pub fn restart(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut next_state: ResMut<NextState<GameState>>,
-) {
-    if keys.just_pressed(KeyCode::Space) {
-        next_state.set(GameState::Running);
-    }
-}
 
 pub struct SchedulesPlugin;
 
@@ -95,7 +87,7 @@ struct PreviousTime(Duration);
 fn run_solve_schedule(world: &mut World) {
     let state = world.resource::<State<GameState>>();
 
-    if *state == GameState::Stopped {
+    if *state != GameState::Running {
         return;
     }
 

@@ -1,13 +1,14 @@
 use astar::AstarSolver;
+use bevy_inspector_egui::prelude::*;
 use greedy::GreedySolver;
 use bevy::prelude::*;
 use hamilton::{CycleCell, HamiltonSolver};
 
 use crate::{arena::{Arena, Direction}, snake::Snake};
 
-mod astar;
-mod greedy;
-mod hamilton;
+pub mod astar;
+pub mod greedy;
+pub mod hamilton;
 mod cycle;
 mod pathfinding;
 
@@ -31,7 +32,8 @@ pub trait SolveMethod {
     }
 }
 
-#[derive(Resource, Debug, Clone)]
+#[derive(Reflect, Resource, Debug, Clone, InspectorOptions)]
+#[reflect(Resource, InspectorOptions)]
 pub enum Solver {
     Astar(AstarSolver),
     Greedy(GreedySolver),

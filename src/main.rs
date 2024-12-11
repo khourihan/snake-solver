@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use ui::Configuration;
 
 mod cell;
 mod settings;
@@ -8,25 +9,28 @@ mod game;
 mod adjacencies;
 mod debug;
 mod solver;
+mod ui;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, game::SchedulesPlugin))
+        .add_plugins((DefaultPlugins, game::SchedulesPlugin, ui::UiPlugin))
         .init_resource::<settings::Settings>()
         .init_resource::<snake::Snake>()
         .init_resource::<game::GameOver>()
         .init_state::<game::GameState>()
         .init_state::<game::GameMode>()
+        .init_resource::<Configuration>()
+        .register_type::<Configuration>()
+        .register_type::<solver::Solver>()
         .add_systems(Startup, (
             setup_camera,
             cell::setup_cells,
             arena::setup_arena,
         ))
         .add_systems(PostStartup, (snake::setup_snake, settings::setup_time_steps))
-        .add_systems(OnEnter(game::GameState::Running), (snake::setup_snake, arena::respawn_food))
+        .add_systems(OnExit(game::GameState::Stopped), (snake::setup_snake, arena::respawn_food))
         .add_systems(OnEnter(game::GameMode::Computer), snake::setup_solver)
         .add_systems(Update, (
-            game::restart,
             settings::update_time_steps,
         ))
         .add_systems(game::SolveStep, (

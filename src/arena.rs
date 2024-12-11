@@ -28,7 +28,7 @@ pub enum Cell {
     Food,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Default)]
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Hash, Eq, Default)]
 pub enum Direction {
     #[default]
     Up,
