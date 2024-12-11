@@ -39,7 +39,7 @@ fn main() {
         .add_systems(game::Draw, (
             arena::update_cell,
             cell::update_cell_transform,
-            // debug::debug_adjacencies,
+            debug::debug_adjacencies,
             // debug::debug_snake_segments,
             debug::debug_solver_tables,
             debug::debug_solver_paths.after(debug::debug_solver_tables),

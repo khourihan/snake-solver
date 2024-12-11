@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::HashMap};
 use rand::seq::IteratorRandom;
 use smallvec::SmallVec;
 
-use crate::{adjacencies::AdjacencyGraph, cell::{DrawCell, DrawCellTransform, ForegroundCell}, game::{GameOver, GameState}, settings::Settings, snake::Snake};
+use crate::{adjacencies::AdjacencyGraph, cell::{DrawCell, DrawCellTransform, ForegroundCell}, game::GameOver, settings::Settings, snake::Snake};
 
 #[derive(Resource)]
 pub struct Arena {

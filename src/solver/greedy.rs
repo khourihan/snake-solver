@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{arena::{Arena, Direction}, snake::Snake};
 
-use super::{astar::shortest_path, cycle::longest_path, SolveMethod};
+use super::{pathfinding::{longest_path, shortest_path}, SolveMethod};
 
 /// Greedy solver that uses A* and forward checking, falling back to the longest path from head to
 /// tail.

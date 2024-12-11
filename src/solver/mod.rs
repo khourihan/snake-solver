@@ -9,6 +9,7 @@ mod astar;
 mod greedy;
 mod hamilton;
 mod cycle;
+mod pathfinding;
 
 pub trait SolveMethod {
     fn initialize(&mut self, _snake: &Snake, _arena: &Arena) {

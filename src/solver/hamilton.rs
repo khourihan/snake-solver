@@ -2,7 +2,7 @@ use bevy::math::UVec2;
 
 use crate::{arena::{Arena, Direction}, snake::Snake};
 
-use super::{astar::shortest_path, cycle::longest_path, SolveMethod};
+use super::{pathfinding::{longest_path, shortest_path}, SolveMethod};
 
 #[derive(Debug, Clone, Default)]
 pub struct HamiltonSolver {
