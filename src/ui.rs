@@ -5,18 +5,25 @@ use bevy_inspector_egui::{bevy_egui::{EguiContext, EguiPlugin}, bevy_inspector, 
 
 use crate::{arena::Arena, game::GameState, settings::Settings, snake::Snake, solver::{astar::AstarSolver, greedy::GreedySolver, hamilton::HamiltonSolver, Solver}}; 
 
-pub struct UiPlugin;
+pub struct UiPlugin {
+    pub inspector: bool,
+}
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_plugins((DefaultInspectorConfigPlugin, EguiPlugin))
+            .init_resource::<Configuration>()
+            .register_type::<Configuration>()
             .add_systems(Update, (
                 update_settings,
-                update_ui,
                 update_game_state,
                 update_solver,
             ));
+
+        if self.inspector {
+            app.add_systems(Update, update_ui)
+                .add_plugins((DefaultInspectorConfigPlugin, EguiPlugin));
+        }
     }
 }
 

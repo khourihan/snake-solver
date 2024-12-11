@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use ui::Configuration;
 
 mod cell;
 mod settings;
@@ -13,14 +12,12 @@ mod ui;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, game::SchedulesPlugin, ui::UiPlugin))
+        .add_plugins((DefaultPlugins, game::SchedulesPlugin, ui::UiPlugin { inspector: false }))
         .init_resource::<settings::Settings>()
         .init_resource::<snake::Snake>()
         .init_resource::<game::GameOver>()
         .init_state::<game::GameState>()
         .init_state::<game::GameMode>()
-        .init_resource::<Configuration>()
-        .register_type::<Configuration>()
         .register_type::<solver::Solver>()
         .add_systems(Startup, (
             setup_camera,
