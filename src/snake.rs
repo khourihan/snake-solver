@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use crate::{arena::{Arena, Cell, Direction, Directions}, game::LastSolverInput, solver::Solver};
+use crate::{
+    arena::{Arena, Cell, Direction, Directions},
+    game::LastSolverInput,
+    solver::Solver,
+};
 
 #[derive(Resource)]
 pub struct Snake {
@@ -19,11 +23,7 @@ impl Default for Snake {
     }
 }
 
-pub fn setup_snake(
-    mut commands: Commands,
-    mut arena: ResMut<Arena>,
-    mut solver: ResMut<Solver>,
-) {
+pub fn setup_snake(mut commands: Commands, mut arena: ResMut<Arena>, mut solver: ResMut<Solver>) {
     arena.adjacencies.reset();
     let head = arena.size / 2 - UVec2::new(1, 0);
     let mid = head + UVec2::new(1, 0);
@@ -55,16 +55,11 @@ pub fn setup_snake(
     commands.insert_resource(snake);
 }
 
-pub fn setup_solver(
-    mut commands: Commands,
-) {
+pub fn setup_solver(mut commands: Commands) {
     commands.insert_resource(Solver::default());
 }
 
-pub fn update_snake_direction_human(
-    keys: Res<LastSolverInput>,
-    mut snake: ResMut<Snake>,
-) {
+pub fn update_snake_direction_human(keys: Res<LastSolverInput>, mut snake: ResMut<Snake>) {
     if keys.just_pressed(KeyCode::ArrowUp) && snake.possible_directions.up() {
         snake.direction = Direction::Up;
         snake.possible_directions = !Directions::DOWN;
@@ -86,11 +81,7 @@ pub fn update_snake_direction_human(
     }
 }
 
-pub fn compute_snake_direction(
-    arena: Res<Arena>,
-    mut snake: ResMut<Snake>,
-    mut solver: ResMut<Solver>,
-) {
+pub fn compute_snake_direction(arena: Res<Arena>, mut snake: ResMut<Snake>, mut solver: ResMut<Solver>) {
     let direction = solver.get_direction(&snake, &arena);
 
     if !snake.possible_directions.contains(direction.into()) {

@@ -1,12 +1,16 @@
-use bevy::{prelude::*, window::PrimaryWindow, color::palettes::css as colors};
+use bevy::{color::palettes::css as colors, prelude::*, window::PrimaryWindow};
 
-use crate::{arena::{Arena, Direction}, solver::Solver, ui::Configuration};
+use crate::{
+    arena::{Arena, Direction},
+    solver::Solver,
+    ui::Configuration,
+};
 
 pub fn debug_adjacencies(
     mut gizmos: Gizmos,
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
-    config: Res<Configuration>
+    config: Res<Configuration>,
 ) {
     if !config.debug_adjacencies {
         return;
@@ -41,7 +45,7 @@ pub fn debug_solver_paths(
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
     solver: Res<Solver>,
-    config: Res<Configuration>
+    config: Res<Configuration>,
 ) {
     if !config.debug_solver_paths {
         return;
@@ -81,7 +85,7 @@ pub fn debug_solver_points(
     windows: Query<&Window, With<PrimaryWindow>>,
     arena: Res<Arena>,
     solver: Res<Solver>,
-    config: Res<Configuration>
+    config: Res<Configuration>,
 ) {
     if !config.debug_solver_points {
         return;
@@ -147,11 +151,7 @@ pub fn debug_solver_tables(
     }
 }
 
-pub fn debug_snake_segments(
-    mut gizmos: Gizmos,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    arena: Res<Arena>,
-) {
+pub fn debug_snake_segments(mut gizmos: Gizmos, windows: Query<&Window, With<PrimaryWindow>>, arena: Res<Arena>) {
     let cell_size = compute_cell_size(windows.single(), arena.size);
     let half_cell = cell_size.0 / 2.0;
 
@@ -173,7 +173,7 @@ fn get_cell_center(pos: UVec2, arena_size: UVec2, cell_size: (Vec2, Vec2)) -> Ve
 
 fn compute_cell_size(window: &Window, arena_size: UVec2) -> (Vec2, Vec2) {
     let mut window_size = window.size();
-    
+
     let max_dim = if window_size.x > window_size.y { 0 } else { 1 };
     let aspect = window_size[1 - max_dim] / window_size[max_dim];
 

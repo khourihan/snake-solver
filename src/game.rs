@@ -1,4 +1,7 @@
-use std::{num::{NonZero, NonZeroU32}, time::Duration};
+use std::{
+    num::{NonZero, NonZeroU32},
+    time::Duration,
+};
 
 use bevy::{app::MainScheduleOrder, ecs::schedule::ScheduleLabel, prelude::*};
 
@@ -35,10 +38,7 @@ impl Plugin for SchedulesPlugin {
         order.insert_after(Update, Solve);
         order.insert_after(Solve, Draw);
 
-        app.add_systems(
-            Solve,
-            run_solve_schedule,
-        );
+        app.add_systems(Solve, run_solve_schedule);
     }
 }
 

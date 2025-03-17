@@ -32,7 +32,7 @@ pub(super) fn longest_path(
     let mut visited = HashSet::new();
 
     visited.insert(current);
-    
+
     for dir in path.iter() {
         current = (current.as_ivec2() + dir.offset()).as_uvec2();
         visited.insert(current);
@@ -54,7 +54,11 @@ pub(super) fn longest_path(
         };
 
         let mut extended = false;
-        for (dir, offset) in test_dirs.into_iter().flat_map(|v| v.into_iter()).map(|dir| (dir, dir.offset())) {
+        for (dir, offset) in test_dirs
+            .into_iter()
+            .flat_map(|v| v.into_iter())
+            .map(|dir| (dir, dir.offset()))
+        {
             let cur_test = current.as_ivec2() + offset;
             let next_test = next.as_ivec2() + offset;
 
@@ -65,8 +69,10 @@ pub(super) fn longest_path(
             let cur_test = cur_test.as_uvec2();
             let next_test = next_test.as_uvec2();
 
-            if adjacencies.contains(cur_test) && !visited.contains(&cur_test)
-                && adjacencies.contains(next_test) && !visited.contains(&next_test)
+            if adjacencies.contains(cur_test)
+                && !visited.contains(&cur_test)
+                && adjacencies.contains(next_test)
+                && !visited.contains(&next_test)
             {
                 visited.insert(cur_test);
                 visited.insert(next_test);
@@ -112,7 +118,7 @@ pub(super) fn astar(
                 let path = reconstruct_path(&parents, index);
                 return Some((path, cost));
             }
-            
+
             if cost > c {
                 continue;
             }
@@ -160,8 +166,8 @@ fn reconstruct_path(parents: &FxIndexMap<(UVec2, Direction), (usize, i32)>, mut 
             node
         })
     })
-        .map(|(_pos, dir)| *dir)
-        .collect::<Vec<Direction>>();
+    .map(|(_pos, dir)| *dir)
+    .collect::<Vec<Direction>>();
 
     path.into_iter().rev().skip(1).collect()
 }

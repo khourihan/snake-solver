@@ -20,10 +20,7 @@ pub struct ForegroundCell {
     pub contents: Cell,
 }
 
-pub fn setup_cells(
-    mut commands: Commands,
-    settings: Res<Settings>,
-) {
+pub fn setup_cells(mut commands: Commands, settings: Res<Settings>) {
     for x in 0..settings.arena_size.x {
         for y in 0..settings.arena_size.y {
             let color = if (x + y) % 2 == 0 {
@@ -33,9 +30,7 @@ pub fn setup_cells(
             };
 
             commands.spawn((
-                DrawCell {
-                    pos: UVec2::new(x, y),
-                },
+                DrawCell { pos: UVec2::new(x, y) },
                 Sprite::from_color(color, Vec2::ONE),
                 Transform::default(),
                 Visibility::default(),
@@ -47,7 +42,12 @@ pub fn setup_cells(
 pub fn update_cell_transform(
     windows: Query<&Window, With<PrimaryWindow>>,
     settings: Res<Settings>,
-    mut cells: Query<(&DrawCell, &mut Transform, Option<&DrawCellTransform>, Option<&ForegroundCell>)>
+    mut cells: Query<(
+        &DrawCell,
+        &mut Transform,
+        Option<&DrawCellTransform>,
+        Option<&ForegroundCell>,
+    )>,
 ) {
     let window = windows.single();
     let mut window_size = window.size();
@@ -68,7 +68,8 @@ pub fn update_cell_transform(
 
         transform.scale = Vec3::new(tile_size.x * size.x, tile_size.y * size.y, 1.0);
 
-        let pos = (cell.pos.as_vec2() + offset) / settings.arena_size.as_vec2() * window_size - (window_size / 2.0) + (tile_size / 2.0);
+        let pos = (cell.pos.as_vec2() + offset) / settings.arena_size.as_vec2() * window_size - (window_size / 2.0)
+            + (tile_size / 2.0);
         let z = if fg.is_some() { 1.0 } else { 0.0 };
         transform.translation = Vec3::new(pos.x, pos.y, z);
     }

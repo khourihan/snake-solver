@@ -1,8 +1,14 @@
 use bevy::{math::UVec2, reflect::Reflect};
 
-use crate::{arena::{Arena, Direction}, snake::Snake};
+use crate::{
+    arena::{Arena, Direction},
+    snake::Snake,
+};
 
-use super::{pathfinding::{longest_path, shortest_path}, SolveMethod};
+use super::{
+    pathfinding::{longest_path, shortest_path},
+    SolveMethod,
+};
 
 #[derive(Reflect, Debug, Clone, Default)]
 pub struct HamiltonSolver {
@@ -56,7 +62,8 @@ impl SolveMethod for HamiltonSolver {
         };
 
         if (snake.length as u32) < arena.size.x * arena.size.y / 2 {
-            if let Some(shortest) = shortest_path(arena.head, arena.food.unwrap(), snake.direction, &arena.adjacencies) {
+            if let Some(shortest) = shortest_path(arena.head, arena.food.unwrap(), snake.direction, &arena.adjacencies)
+            {
                 let next_pos = arena.head + shortest[0];
                 let tail = self.cycle[(arena.tail.y * self.size.x + arena.tail.x) as usize].index;
                 let head = self.cycle[(arena.head.y * self.size.x + arena.head.x) as usize].index;

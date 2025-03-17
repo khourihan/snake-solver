@@ -2,7 +2,13 @@ use bevy::{prelude::*, utils::HashMap};
 use rand::seq::IteratorRandom;
 use smallvec::SmallVec;
 
-use crate::{adjacencies::AdjacencyGraph, cell::{DrawCell, DrawCellTransform, ForegroundCell}, game::GameOver, settings::Settings, snake::Snake};
+use crate::{
+    adjacencies::AdjacencyGraph,
+    cell::{DrawCell, DrawCellTransform, ForegroundCell},
+    game::GameOver,
+    settings::Settings,
+    snake::Snake,
+};
 
 #[derive(Resource)]
 pub struct Arena {
@@ -64,7 +70,7 @@ impl Iterator for CellPositions {
 pub struct Cells<I: Iterator> {
     pos: IVec2,
     width: i32,
-    cells: I
+    cells: I,
 }
 
 impl<I: Iterator> Iterator for Cells<I> {
@@ -77,7 +83,7 @@ impl<I: Iterator> Iterator for Cells<I> {
             self.pos.x = 0;
             self.pos.y += 1;
         }
-        
+
         Some((self.pos.as_uvec2(), self.cells.next()?))
     }
 }
@@ -235,7 +241,10 @@ impl Arena {
             return None;
         }
 
-        Some(unsafe { self.cells.get_unchecked_mut((pos.y * self.size.x as i32 + pos.x) as usize) })
+        Some(unsafe {
+            self.cells
+                .get_unchecked_mut((pos.y * self.size.x as i32 + pos.x) as usize)
+        })
     }
 
     pub fn get_cell_unchecked(&self, pos: UVec2) -> &Cell {
@@ -303,28 +312,25 @@ impl Arena {
     }
 }
 
-pub fn setup_arena(
-    mut commands: Commands,
-    settings: Res<Settings>,
-) {
+pub fn setup_arena(mut commands: Commands, settings: Res<Settings>) {
     let size = settings.arena_size;
     let mut adjacencies = HashMap::new();
 
     for x in 0..size.x {
         for y in 0..size.y {
             let mut directions = Directions::NONE;
-            
+
             if x != 0 {
                 directions |= Directions::LEFT;
-            } 
+            }
 
             if x < size.x - 1 {
                 directions |= Directions::RIGHT;
             }
-            
+
             if y != 0 {
                 directions |= Directions::DOWN;
-            } 
+            }
 
             if y < size.y - 1 {
                 directions |= Directions::UP;
@@ -388,19 +394,28 @@ pub fn update_cell(
             match ty {
                 Cell::None => {
                     for &mut entity in entities {
-                        if let Some(mut e) = commands.get_entity(entity) { e.despawn() }
+                        if let Some(mut e) = commands.get_entity(entity) {
+                            e.despawn()
+                        }
                     }
                     positions.remove(&pos);
                 },
                 Cell::SnakeTail { distance, .. } => {
                     let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
-                        | arena.neighbors_matching(pos, if *distance == 1 { Cell::SnakeHead } else { Cell::SnakeTail { distance: distance - 1 } });
+                        | arena.neighbors_matching(
+                            pos,
+                            if *distance == 1 {
+                                Cell::SnakeHead
+                            } else {
+                                Cell::SnakeTail { distance: distance - 1 }
+                            },
+                        );
 
                     let sizes_offsets = get_sizes_offsets(dirs);
 
                     sprite.color = settings.colors.snake_tail;
-                    transform.size = sizes_offsets.0.0;
-                    transform.offset = sizes_offsets.0.1;
+                    transform.size = sizes_offsets.0 .0;
+                    transform.offset = sizes_offsets.0 .1;
 
                     if let Some(size_offset) = sizes_offsets.1 {
                         if let Ok((_contents, mut sprite, mut transform)) = cells.get_mut(entities[1]) {
@@ -408,18 +423,22 @@ pub fn update_cell(
                             transform.size = size_offset.0;
                             transform.offset = size_offset.1;
                         } else {
-                            entities[1] = commands.spawn((
-                                DrawCell { pos },
-                                Sprite::from_color(settings.colors.snake_tail, Vec2::ONE),
-                                ForegroundCell { contents: Cell::None },
-                                DrawCellTransform {
-                                    size: size_offset.0,
-                                    offset: size_offset.1,
-                                }
-                            )).id();
+                            entities[1] = commands
+                                .spawn((
+                                    DrawCell { pos },
+                                    Sprite::from_color(settings.colors.snake_tail, Vec2::ONE),
+                                    ForegroundCell { contents: Cell::None },
+                                    DrawCellTransform {
+                                        size: size_offset.0,
+                                        offset: size_offset.1,
+                                    },
+                                ))
+                                .id();
                         }
                     } else {
-                        if let Some(mut e) = commands.get_entity(entities[1]) { e.despawn() };
+                        if let Some(mut e) = commands.get_entity(entities[1]) {
+                            e.despawn()
+                        };
                         entities[1] = Entity::PLACEHOLDER;
                     }
                 },
@@ -429,8 +448,8 @@ pub fn update_cell(
                     let sizes_offsets = get_sizes_offsets(dirs);
 
                     sprite.color = settings.colors.snake_head;
-                    transform.size = sizes_offsets.0.0;
-                    transform.offset = sizes_offsets.0.1;
+                    transform.size = sizes_offsets.0 .0;
+                    transform.offset = sizes_offsets.0 .1;
 
                     if let Some(size_offset) = sizes_offsets.1 {
                         if let Ok((_contents, mut sprite, mut transform)) = cells.get_mut(entities[1]) {
@@ -438,18 +457,22 @@ pub fn update_cell(
                             transform.size = size_offset.0;
                             transform.offset = size_offset.1;
                         } else {
-                            entities[1] = commands.spawn((
-                                DrawCell { pos },
-                                Sprite::from_color(settings.colors.snake_head, Vec2::ONE),
-                                ForegroundCell { contents: Cell::None },
-                                DrawCellTransform {
-                                    size: size_offset.0,
-                                    offset: size_offset.1,
-                                },
-                            )).id();
+                            entities[1] = commands
+                                .spawn((
+                                    DrawCell { pos },
+                                    Sprite::from_color(settings.colors.snake_head, Vec2::ONE),
+                                    ForegroundCell { contents: Cell::None },
+                                    DrawCellTransform {
+                                        size: size_offset.0,
+                                        offset: size_offset.1,
+                                    },
+                                ))
+                                .id();
                         }
                     } else {
-                        if let Some(mut e) = commands.get_entity(entities[1]) { e.despawn() };
+                        if let Some(mut e) = commands.get_entity(entities[1]) {
+                            e.despawn()
+                        };
                         entities[1] = Entity::PLACEHOLDER;
                     }
                 },
@@ -458,7 +481,9 @@ pub fn update_cell(
                     transform.size = Vec2::splat(0.5);
                     transform.offset = Vec2::ZERO;
 
-                    if let Some(mut e) = commands.get_entity(entities[1]) { e.despawn() };
+                    if let Some(mut e) = commands.get_entity(entities[1]) {
+                        e.despawn()
+                    };
                     entities[1] = Entity::PLACEHOLDER;
                 },
             }
@@ -470,99 +495,116 @@ pub fn update_cell(
             match ty {
                 Cell::SnakeTail { distance, .. } => {
                     let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: distance + 1 })
-                        | arena.neighbors_matching(pos, if *distance == 1 { Cell::SnakeHead } else { Cell::SnakeTail { distance: distance - 1 } });
+                        | arena.neighbors_matching(
+                            pos,
+                            if *distance == 1 {
+                                Cell::SnakeHead
+                            } else {
+                                Cell::SnakeTail { distance: distance - 1 }
+                            },
+                        );
 
                     let sizes_offsets = get_sizes_offsets(dirs);
 
                     positions.insert(
                         pos,
                         [
-                            commands.spawn((
-                                DrawCell { pos },
-                                Sprite::from_color(settings.colors.snake_tail, Vec2::ONE),
-                                ForegroundCell { contents: Cell::SnakeTail { distance: *distance } },
-                                DrawCellTransform {
-                                    size: sizes_offsets.0.0,
-                                    offset: sizes_offsets.0.1,
-                                }
-                            )).id(),
-                            if let Some(size_offset) = sizes_offsets.1 {
-                                commands.spawn((
+                            commands
+                                .spawn((
                                     DrawCell { pos },
                                     Sprite::from_color(settings.colors.snake_tail, Vec2::ONE),
-                                    ForegroundCell { contents: Cell::None },
+                                    ForegroundCell {
+                                        contents: Cell::SnakeTail { distance: *distance },
+                                    },
                                     DrawCellTransform {
-                                        size: size_offset.0,
-                                        offset: size_offset.1,
-                                    }
-                                )).id()
+                                        size: sizes_offsets.0 .0,
+                                        offset: sizes_offsets.0 .1,
+                                    },
+                                ))
+                                .id(),
+                            if let Some(size_offset) = sizes_offsets.1 {
+                                commands
+                                    .spawn((
+                                        DrawCell { pos },
+                                        Sprite::from_color(settings.colors.snake_tail, Vec2::ONE),
+                                        ForegroundCell { contents: Cell::None },
+                                        DrawCellTransform {
+                                            size: size_offset.0,
+                                            offset: size_offset.1,
+                                        },
+                                    ))
+                                    .id()
                             } else {
                                 Entity::PLACEHOLDER
-                            }
-                        ]
+                            },
+                        ],
                     );
                 },
                 Cell::SnakeHead => {
                     let dirs = arena.neighbors_matching(pos, Cell::SnakeTail { distance: 1 });
-                    
+
                     let sizes_offsets = get_sizes_offsets(dirs);
 
                     positions.insert(
                         pos,
                         [
-                            commands.spawn((
-                                DrawCell { pos },
-                                Sprite::from_color(settings.colors.snake_head, Vec2::ONE),
-                                ForegroundCell { contents: Cell::SnakeHead },
-                                DrawCellTransform {
-                                    size: sizes_offsets.0.0,
-                                    offset: sizes_offsets.0.1,
-                                }
-                            )).id(),
-                            if let Some(size_offset) = sizes_offsets.1 {
-                                commands.spawn((
+                            commands
+                                .spawn((
                                     DrawCell { pos },
                                     Sprite::from_color(settings.colors.snake_head, Vec2::ONE),
-                                    ForegroundCell { contents: Cell::None },
-                                    DrawCellTransform {
-                                        size: size_offset.0,
-                                        offset: size_offset.1,
+                                    ForegroundCell {
+                                        contents: Cell::SnakeHead,
                                     },
-                                )).id()
+                                    DrawCellTransform {
+                                        size: sizes_offsets.0 .0,
+                                        offset: sizes_offsets.0 .1,
+                                    },
+                                ))
+                                .id(),
+                            if let Some(size_offset) = sizes_offsets.1 {
+                                commands
+                                    .spawn((
+                                        DrawCell { pos },
+                                        Sprite::from_color(settings.colors.snake_head, Vec2::ONE),
+                                        ForegroundCell { contents: Cell::None },
+                                        DrawCellTransform {
+                                            size: size_offset.0,
+                                            offset: size_offset.1,
+                                        },
+                                    ))
+                                    .id()
                             } else {
                                 Entity::PLACEHOLDER
-                            }
-                        ]
+                            },
+                        ],
                     );
                 },
                 Cell::Food => {
                     positions.insert(
                         pos,
                         [
-                            commands.spawn((
-                                DrawCell { pos },
-                                Sprite::from_color(settings.colors.food, Vec2::ONE),
-                                ForegroundCell { contents: Cell::Food },
-                                DrawCellTransform {
-                                    size: Vec2::splat(0.5),
-                                    offset: Vec2::ZERO,
-                                }
-                            )).id(),
+                            commands
+                                .spawn((
+                                    DrawCell { pos },
+                                    Sprite::from_color(settings.colors.food, Vec2::ONE),
+                                    ForegroundCell { contents: Cell::Food },
+                                    DrawCellTransform {
+                                        size: Vec2::splat(0.5),
+                                        offset: Vec2::ZERO,
+                                    },
+                                ))
+                                .id(),
                             Entity::PLACEHOLDER,
-                        ]
+                        ],
                     );
                 },
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
     }
 }
 
-pub fn update_snake_position(
-    mut arena: ResMut<Arena>,
-    mut snake: ResMut<Snake>,
-    mut game_over: ResMut<GameOver>,
-) {
+pub fn update_snake_position(mut arena: ResMut<Arena>, mut snake: ResMut<Snake>, mut game_over: ResMut<GameOver>) {
     let mut next_head: Option<IVec2> = None;
     let mut remove: Option<UVec2> = None;
     arena.just_ate = false;
@@ -651,26 +693,21 @@ pub fn update_snake_position(
     }
 }
 
-pub fn check_win(
-    arena: Res<Arena>,
-    snake: Res<Snake>,
-    mut game_over: ResMut<GameOver>,
-) {
+pub fn check_win(arena: Res<Arena>, snake: Res<Snake>, mut game_over: ResMut<GameOver>) {
     if snake.length >= arena.cells.len() {
         game_over.0 = true;
     }
 }
 
-pub fn spawn_food(
-    mut arena: ResMut<Arena>,
-) {
+pub fn spawn_food(mut arena: ResMut<Arena>) {
     if arena.food.is_some() {
         return;
     }
 
     let mut rng = rand::thread_rng();
-    
-    let (pos, cell) = arena.cells_mut()
+
+    let (pos, cell) = arena
+        .cells_mut()
         .filter(|(_, cell)| **cell == Cell::None)
         .choose(&mut rng)
         .unwrap();
@@ -679,16 +716,21 @@ pub fn spawn_food(
     arena.food = Some(pos);
 }
 
-pub fn respawn_food(
-    mut arena: ResMut<Arena>,
-) {
+pub fn respawn_food(mut arena: ResMut<Arena>) {
     arena.food = None;
 }
 
 impl PartialEq for Cell {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::SnakeTail { distance: l_distance, .. }, Self::SnakeTail { distance: r_distance, .. }) => l_distance == r_distance,
+            (
+                Self::SnakeTail {
+                    distance: l_distance, ..
+                },
+                Self::SnakeTail {
+                    distance: r_distance, ..
+                },
+            ) => l_distance == r_distance,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }

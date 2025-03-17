@@ -1,9 +1,20 @@
-use std::num::{NonZero, NonZeroU32};
+use std::num::NonZeroU32;
 
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_inspector_egui::{bevy_egui::{EguiContext, EguiPlugin}, bevy_inspector, egui, prelude::*, DefaultInspectorConfigPlugin};
+use bevy_inspector_egui::{
+    bevy_egui::{EguiContext, EguiPlugin},
+    bevy_inspector, egui,
+    prelude::*,
+    DefaultInspectorConfigPlugin,
+};
 
-use crate::{arena::Arena, game::GameState, settings::Settings, snake::Snake, solver::{astar::AstarSolver, greedy::GreedySolver, hamilton::HamiltonSolver, Solver}}; 
+use crate::{
+    arena::Arena,
+    game::GameState,
+    settings::Settings,
+    snake::Snake,
+    solver::{astar::AstarSolver, greedy::GreedySolver, hamilton::HamiltonSolver, Solver},
+};
 
 pub struct UiPlugin {
     pub inspector: bool,
@@ -11,14 +22,9 @@ pub struct UiPlugin {
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<Configuration>()
+        app.init_resource::<Configuration>()
             .register_type::<Configuration>()
-            .add_systems(Update, (
-                update_settings,
-                update_game_state,
-                update_solver,
-            ));
+            .add_systems(Update, (update_settings, update_game_state, update_solver));
 
         if self.inspector {
             app.add_systems(Update, update_ui)
@@ -36,7 +42,7 @@ pub struct Configuration {
     pub debug_solver_points: bool,
     solver: SolverVariant,
     interval: Option<f32>,
-    substeps: NonZeroU32,
+    substeps: u32,
 }
 
 impl Default for Configuration {
@@ -48,7 +54,7 @@ impl Default for Configuration {
             debug_solver_points: false,
             solver: SolverVariant::default(),
             interval: None,
-            substeps: NonZero::new(1).unwrap(),
+            substeps: 1,
         }
     }
 }
@@ -84,12 +90,9 @@ fn update_ui(world: &mut World) {
         });
 }
 
-fn update_settings(
-    mut settings: ResMut<Settings>,
-    config: Res<Configuration>
-) {
+fn update_settings(mut settings: ResMut<Settings>, config: Res<Configuration>) {
     settings.interval = config.interval;
-    settings.substeps = config.substeps;
+    settings.substeps = NonZeroU32::new(config.substeps).unwrap_or(NonZeroU32::new(1).unwrap());
 }
 
 fn update_solver(

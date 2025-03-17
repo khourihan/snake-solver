@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::{arena::{Arena, Direction}, snake::Snake};
+use crate::{
+    arena::{Arena, Direction},
+    snake::Snake,
+};
 
 use super::{pathfinding::shortest_path, SolveMethod};
 
@@ -33,4 +36,3 @@ impl SolveMethod for AstarSolver {
         }
     }
 }
-

@@ -44,18 +44,12 @@ impl Default for ColorSettings {
     }
 }
 
-pub fn setup_time_steps(
-    settings: Res<Settings>,
-    mut time_steps: ResMut<TimeSteps>,
-) {
+pub fn setup_time_steps(settings: Res<Settings>, mut time_steps: ResMut<TimeSteps>) {
     time_steps.interval = settings.interval;
     time_steps.substeps = settings.substeps;
 }
 
-pub fn update_time_steps(
-    settings: Res<Settings>,
-    mut time_steps: ResMut<TimeSteps>,
-) {
+pub fn update_time_steps(settings: Res<Settings>, mut time_steps: ResMut<TimeSteps>) {
     if settings.is_changed() {
         time_steps.interval = settings.interval;
         time_steps.substeps = settings.substeps;

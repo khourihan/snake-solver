@@ -1,14 +1,20 @@
 use bevy::prelude::*;
 
-use crate::{arena::{Arena, Direction}, snake::Snake};
+use crate::{
+    arena::{Arena, Direction},
+    snake::Snake,
+};
 
-use super::{pathfinding::{longest_path, shortest_path}, SolveMethod};
+use super::{
+    pathfinding::{longest_path, shortest_path},
+    SolveMethod,
+};
 
 /// Greedy solver that uses A* and forward checking, falling back to the longest path from head to
 /// tail.
 ///
-/// While the greedy solver quickly makes progress, it isn't guaranteed to find a valid Hamiltonian 
-/// cycle nor follow it by the end of the game, meaning it can occasionally get stuck in unwinnable 
+/// While the greedy solver quickly makes progress, it isn't guaranteed to find a valid Hamiltonian
+/// cycle nor follow it by the end of the game, meaning it can occasionally get stuck in unwinnable
 /// loops and lose near the end. Also, the greedy solver cannot account for food spawning in the
 /// longest path from its head to its tail, which can cause it to lose by running into its tail.
 #[derive(Reflect, Debug, Clone, Default)]
@@ -66,7 +72,7 @@ impl SolveMethod for GreedySolver {
                 let test_head = head + longest[0];
                 adjacencies.remove(head);
 
-                // If it can still reach its tail without running into it, move in the direction 
+                // If it can still reach its tail without running into it, move in the direction
                 // of the shortest path to the food.
                 if let Some(path) = shortest_path(test_head, behind, longest[0], &adjacencies) {
                     if path.len() > 1 {
@@ -133,7 +139,10 @@ impl SolveMethod for GreedySolver {
     }
 
     fn debug_paths(&self, _arena: &Arena) -> Vec<(UVec2, Option<&[Direction]>)> {
-        vec![(self.head, self.shortest_path.as_deref()), (self.head, self.longest_path.as_deref())]
+        vec![
+            (self.head, self.shortest_path.as_deref()),
+            (self.head, self.longest_path.as_deref()),
+        ]
     }
 
     fn debug_points(&self, _arena: &Arena) -> Vec<Option<UVec2>> {
