@@ -8,8 +8,8 @@ A collection of algorithms that play snake, implemented in Rust.
 
 ### Greedy Solver
 
-https://github.com/user-attachments/assets/fc24f36b-b6c7-4d3d-9bab-cbaab1378e84
+https://github.com/user-attachments/assets/8520d772-2a71-4b49-8945-d47cb1421a49
 
 ### Hamiltonian Solver
 
-https://github.com/user-attachments/assets/52d89f4b-f1f8-4217-99dd-eb93188dcb21
+https://github.com/user-attachments/assets/45191e3f-fdd0-4dd7-8637-76c9919877df
